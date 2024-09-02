@@ -4,6 +4,35 @@
 using Markdown
 using InteractiveUtils
 
+#> [frontmatter]
+#> chapter = 2
+#> video = "https://www.youtube.com/watch?v=H6Dcx3YeTkE"
+#> image = "https://user-images.githubusercontent.com/6933510/136196552-ce16c06f-bd12-427f-80e5-aedb1fbc734a.png"
+#> section = 1
+#> order = 1
+#> title = "Introduction to BeforeIT.jl"
+#> layout = "layout.jlhtml"
+#> youtube_id = "H6Dcx3YeTkE"
+#> description = ""
+#> tags = ["lecture", "module2"]
+
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
+# ╔═╡ d155ea12-9628-11eb-347f-7754a33fd403
+using Plots, PlutoUI, HypertextLiteral, Graphs, GraphPlot, Printf, SpecialFunctions
+
+# ╔═╡ 01506de2-918a-11eb-2a4d-c554a6e54631
+TableOfContents()
+
+
 # ╔═╡ f2a19047-8ef8-428a-97ca-f599788fae0c
 begin
 	import BeforeIT as Bit

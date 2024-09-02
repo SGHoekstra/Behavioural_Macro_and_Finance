@@ -2,7 +2,7 @@ Dict(
     :main => [
         "welcome" => collections["welcome"].pages,
         "Preliminaries" => collections["preliminaries"].pages,
-        "Module 1: Introduction to agent based modelling" => collections["module2"].pages,
+        "Module 1: Introduction to agent based modelling" => collections["module1"].pages,
         #"Module 3: Climate Science" => collections["module3"].pages,
 
     ],

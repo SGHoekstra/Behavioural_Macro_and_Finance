@@ -1,0 +1,4 @@
+channels = ["conda-forge"]
+
+[pip.deps]
+sbi = ">=0.23"

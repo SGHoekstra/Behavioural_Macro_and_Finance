@@ -334,6 +334,7 @@ begin
     _np        = pyimport("numpy")
     _sbi_inf   = pyimport("sbi.inference")
     _sbi_utils = pyimport("sbi.utils")
+    _mcmc_par  = pyimport("sbi.inference.posteriors.posterior_parameters").MCMCPosteriorParameters
     md"Python `sbi` imports ✓  (torch $(pyconvert(String, _torch.__version__)))"
 end
 
@@ -345,7 +346,7 @@ md"""
 We draw $\theta_i \sim \text{Uniform}([0,1]^3)$ and evaluate the `summarise` function in Julia.
 The resulting matrices are converted to PyTorch tensors via NumPy's buffer protocol.
 
-> **Note:** 500 simulations with `N=4` MC paths each takes roughly 5–10 minutes.
+> **Note:** 500 simulations at `N_paths = 8` MC paths each takes roughly 5–10 minutes.
 > Increase `N_sbi` for a tighter posterior; decrease for quick exploration.
 """
 
@@ -411,6 +412,10 @@ After training we call `posterior.sample(n, x=x_obs)` — no MCMC needed, one fo
 begin
     run_snpe; run_sbi_sims   # ensure simulations exist
 
+    # Seed torch as well as Julia: Random.seed!(99) above fixes the simulated
+    # training pairs, but the flow's weight initialisation and batch shuffling
+    # come from torch's RNG. Without this the posterior moves between runs.
+    _torch.manual_seed(0)
     snpe_engine  = _sbi_inf.SNPE(prior=_sbi_prior)
     snpe_engine.append_simulations(_θ_tensor, _x_tensor)
     snpe_de      = snpe_engine.train()
@@ -465,15 +470,24 @@ This makes SNRE slower at sample time but it can be more robust when the summary
 begin
     run_snre; run_sbi_sims   # ensure simulations exist
 
+    _torch.manual_seed(0)   # see the note in the SNPE cell
     snre_engine  = _sbi_inf.SNRE(prior=_sbi_prior)
     snre_engine.append_simulations(_θ_tensor, _x_tensor)
     snre_cls     = snre_engine.train()
+    # sbi 0.26 deprecates the mcmc_parameters dict in favour of a typed
+    # PosteriorParameters object; the old form still works but warns and is
+    # slated for removal.
     snre_post_py = snre_engine.build_posterior(
         snre_cls,
-        mcmc_method        = "slice_np_vectorized",
-        mcmc_parameters = pydict(Dict("num_chains" => 4, "thin" => 5, "warmup_steps" => 100))
+        mcmc_method          = "slice_np_vectorized",
+        posterior_parameters = _mcmc_par(num_chains = 4, thin = 5, warmup_steps = 100)
     )
 
+    # Reseed before sampling: training above consumed the torch stream, and the
+    # slice sampler draws proposals from NumPy's RNG and chain inits from
+    # torch's. Seeding both is required — either alone still varies run to run.
+    _torch.manual_seed(0)
+    _np.random.seed(0)
     snre_raw     = snre_post_py.sample([200], x=_x_obs_t)   # MCMC → fewer samples
     snre_samples = pyconvert(Matrix{Float64}, snre_raw.detach().cpu().numpy())
 

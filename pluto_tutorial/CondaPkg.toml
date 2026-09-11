@@ -1,4 +1,4 @@
 channels = ["conda-forge"]
 
 [pip.deps]
-sbi = ">=0.23"
+sbi = ">=0.26"

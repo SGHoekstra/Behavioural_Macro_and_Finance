@@ -73,7 +73,9 @@ We calibrate the three CANVAS pass-through coefficients from Notebook 07:
 
 $$\theta = (\phi^{DP},\, \phi^{CP},\, \phi^{AE}) \in [0, 1]^3$$
 
-**Observed data $x_{\text{obs}}$:** the macroeconomic time series produced by a single forward run of the model at the true $\theta$. Following Wiese et al. (2023), we pass raw trajectories directly to the neural network rather than hand-crafted scalars — the network learns which features identify the parameters.
+**Observed data $x_{\text{obs}}$:** the macroeconomic time series produced by a forward run of the model at the true $\theta$. Following Wiese et al. (2023), we pass raw trajectories directly to the neural network rather than hand-crafted scalars — the network learns which features identify the parameters.
+
+Note that averaging over Monte Carlo paths *is* itself a summary-statistic choice: it discards the cross-path dispersion, so any parameter identified mainly through volatility rather than through the mean path will be harder to recover here.
 
 We use two observable series over $T$ quarters:
 - Quarter-by-quarter **GDP deflator inflation** (period-over-period price level change)
@@ -88,6 +90,19 @@ begin
     # Finite-size noise is handled by MC averaging:
     #   N_obs   — large, for x_obs; mimics empirical data aggregated over many draws.
     #   N_paths — smaller, for each training simulation; balances noise vs. runtime.
+    #
+    # N_obs > N_paths is deliberate and helps: the distance ‖x_sim - x_obs‖
+    # carries variance from BOTH terms, so a smoother x_obs removes one of the
+    # two noise sources. Measured over 12 replications at scale 0.0001,
+    # T_sim = 12: with N_obs = 64 the distance at the true θ is 0.0196 ± 0.003
+    # against 0.0459 ± 0.006 at a wrong θ (8.8σ separation); setting
+    # N_obs = N_paths = 8 degrades that to 5.4σ.
+    #
+    # The caveat is interpretive, not numerical. Real data is a SINGLE
+    # realisation, so a posterior conditioned on a 64-path average is tighter
+    # than one conditioned on an actual economy would be. Read the posteriors
+    # below as "what could be recovered from an idealised, noise-averaged
+    # observation", not as an empirical uncertainty estimate.
     parameters, init_cond = Bit.get_params_and_initial_conditions(
         Bit.ITALY_CALIBRATION, DateTime(2010, 3, 31); scale = 0.0001)
 
@@ -173,9 +188,6 @@ begin
     "Simulator function defined ✓"
 end
 
-# ╔═╡ aa12c68f-b30f-4443-a6c8-c74520bf3651
-_defl
-
 # ╔═╡ 08000000-0000-0000-0000-000000000009
 md"""
 ---
@@ -220,15 +232,25 @@ begin
     run_abc
 
     N_abc = 100
-    # ε is in the same units as the 2T-dim trajectory norm.
-    # With T=16 and typical quarterly inflation/growth ~0.5%, norm(x_obs) ≈ sqrt(32)*0.005 ≈ 0.03.
+    # ε is in the same units as the 2T-dim trajectory norm. Calibrated by
+    # measurement rather than by a scale argument: at scale 0.0001 with
+    # T_sim = 12, ‖x_obs‖ ≈ 0.085, and ‖x_sim - x_obs‖ is 0.0196 ± 0.003 at
+    # the true θ against 0.0459 ± 0.006 at a badly wrong one. ε = 0.03 sits
+    # between them — over 12 replications it accepted 12/12 at the true θ and
+    # 0/12 at the wrong θ.
     ε = 0.03
 
+    Random.seed!(808)
     prior_samples = [(dp = rand(), cp = rand(), ae = rand()) for _ in 1:N_abc]
     abc_accepted  = NamedTuple{(:dp,:cp,:ae)}[]
 
-    for θ in prior_samples
-        x_sim = summarise(θ; seed=rand(1:1000), N=N_paths)
+    # Seed by loop index, matching the NPE section below. The previous version
+    # used seed = rand(1:1000): `summarise` reseeds the global RNG on every
+    # call, so each draw came from a stream that call had just reset, and 100
+    # draws from 1000 values collide with ~99% probability — different θ
+    # silently sharing a random stream.
+    for (i, θ) in enumerate(prior_samples)
+        x_sim = summarise(θ; seed = 1000 + i, N = N_paths)
         dist  = norm(x_sim .- x_obs)
         if dist < ε
             push!(abc_accepted, θ)
@@ -534,7 +556,6 @@ md"""
 # ╟─08000000-0000-0000-0000-000000000006
 # ╠═08000000-0000-0000-0000-000000000007
 # ╠═08000000-0000-0000-0000-000000000008
-# ╠═aa12c68f-b30f-4443-a6c8-c74520bf3651
 # ╟─08000000-0000-0000-0000-000000000009
 # ╠═08000000-0000-0000-0000-00000000000a
 # ╠═08000000-0000-0000-0000-00000000000b

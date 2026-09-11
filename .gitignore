@@ -1,1 +1,8 @@
 .DS_Store
+
+# CondaPkg.jl build cache — regenerated from pluto_tutorial/CondaPkg.toml.
+# Contains machine-specific absolute paths and an os/arch-pinned lockfile.
+.CondaPkg/
+
+# Stale duplicate of the notebooks (macOS "Compress" artifact).
+Archive.zip

@@ -22,7 +22,7 @@ begin
     Pkg.activate(dirname(@__FILE__))
     import BeforeIT as Bit
     import Random
-    using Plots, PlutoUI, Statistics, StatsBase
+    using Plots, PlutoUI, Statistics, StatsBase, DataFrames
 end
 
 # ╔═╡ 06000000-0000-0000-0000-000000000002
@@ -220,7 +220,6 @@ begin
         push!(rmse_abm, std(paths_at_h))
     end
 
-    using DataFrames
     rmse_table = DataFrame(
         "Horizon (quarters)" => horizons,
         "|AR(1) − ABM mean|" => round.(rmse_ar1, sigdigits=4),
@@ -280,7 +279,6 @@ md"""
 - `Bit.ensemblerun!` generates a full MC ensemble; stack `m.data.real_gdp` into a matrix for quantile analysis.
 - An AR(1) benchmark is simple to implement in Julia: `X = hcat(ones(n), y_lag); coef = X \\ y_now`.
 - The ABM fan chart widens at longer horizons — uncertainty accumulates correctly through the stochastic shocks.
-.
 
 ---
 ## Exercises

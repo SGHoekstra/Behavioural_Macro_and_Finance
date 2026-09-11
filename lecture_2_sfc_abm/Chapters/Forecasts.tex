@@ -1,0 +1,257 @@
+% Chapter Template
+
+\section{Comparison of Forecast Results} % Main chapter title
+
+\label{Forecasts} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+For external validation of the agent based model, we conduct forecasting experiments where we compare out-of-sample forecast performance of the optimal consumption agent based model (OC-ABM), the baseline agent base model of \cite{poledna_economic_2019} (ABM), the extended heuristic agent based model (EH-ABM) with an unconstrained AR, VAR, ARX, and VARX model. We use the out-of-sample root mean squared error (RMSE)\footnote{The root mean squared error is defined as $RMSE = \sqrt{\frac{1}{n} \sum_{i=1}^T(\hat{x}_t-x_t)^2}$. Here $\hat{x}_t$ is the forecasted value and $x_t$ is the observed value.} as the measure of forecasting performance. To compare whether the forecasts differ significantly in forecasting accuracy we use the modified Diebold-Mariano test \citep{harveyTestingEqualityPrediction1997}, which is corrected for the overall length of the forecasting horizon. The test is applied to the loss differential which is defined as the difference of the squared forecast errors. We use the forecast errors to assure that the compared error series are stationary. Furthermore, we adjust for the auto-correlation typically seen in multi-period forecast errors. It’s important to note that an efficient h-period forecast will have errors that follow a moving average process of order h-1 (MA(h-1)). To address this issue, we follow \cite{harveyTestingEqualityPrediction1997} and use a Newey-West estimator to calculate the sample variance of the loss differential. We compare real GDP, inflation, government consumption, exports, imports, and real GDP and inflation of the Euro area (EA), and finally the Euro Interbank Offered rate (Euribor).\\
+
+The VAR(1) model is estimated over the sample of 1997Q1 to 2010Q1. The VAR(1) model is consequently re-estimated for every quarter from 2010Q1 to 2019Q4. The variables GDP, government consumption, exports, imports, and GDP of the euro area are entered as the first differences of the log of the variables. The variables inflation of the Netherlands and the inflation of the Euro area are entered as the first difference log of the GDP deflator. The Euribor rate is entered as the quarterly rate. We use the VAR(1) specification as this model specification minimized the Aikake and Bayesian information criteria. We calibrated the ABMs for the reference quarters 2012Q2 to 2019Q4 and use 100 Monte Carlo simulations. We calibrated the ABM with exogenous predictors for the reference quarters 2010Q1 to 2019Q4 and also use 100 Monte Carlo simulations.\\
+
+In table \ref{table:rmse_validation} we can see the out-of-sample RMSE statistics for 1, 2, 4, 8, and 12 quarters over the period 2012Q1 to 2016Q4\footnote{We had to exclude the periods 2010Q1-2011Q4 as the CBS register data was not available for these periods and we had to exclude the periods 2017Q1-2019Q4 as this database was damaged due to computer issues.}. The RMSE statistics of GDP, government consumption, exports, imports and GDP of the Euro area are reported in log levels. The R MSE statistics of the variables inflation of the Netherlands and the inflation of the Euro area are reported as the first difference log of the GDP deflator. The RMSE statistic of the Euribor rate is reported as the quarterly rate. In the Diebold-Mariano test statistics are reported in the parentheses. We test whether the base version of the ABM and the adjusted policy rule version of the ABM have the same forecasting accuracy as the VAR(1) model. We observe that for most variables the forecasting RMSE of the agent based models is significantly lower than the forecasting accuracy of the VAR(1) model in the longrun. In the short run it seems that the VAR(1) performs better than the agent based models. Note however that the RMSE is very low for the VAR(1) model and that having relatively worse forecasting performance in terms of RMSE still results in a low forecasting RMSE.\\
+
+\begin{table}[!h]
+	\caption{Out-of-sample forecast performance} 
+	\label{table:rmse_validation}
+	\centering
+	\resizebox{\columnwidth}{!}{
+		\begin{tabular}{lllp{2.2cm}lllll}
+			\toprule
+			& GDP & Inflation & Government consumption & Exports & Imports & GDP EA & Inflation EA & Euribor \\
+			\midrule
+			VAR(1) & \multicolumn{8}{l}{\textit{RMSE-statistic for different forecast horizons}}  \\ \midrule
+			
+			\input{tabs/rmse_validation_var}
+            \\ \midrule
+            ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+            \input{tabs/base/calibrated/rmse_validation_abm}
+            \\ \midrule
+            EH-ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_validation_abm}
+             \\ \midrule
+			OC-ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_validation_abm}
+	        \\ \bottomrule
+		\end{tabular}
+	}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. The VAR(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+In table \ref{table:rmse_abm} we compare the forecasting performance of the three ABMs with the forecasting performance of an AR(1) model. We compare the forecasting horizons of 1, 2, 4, 8, and 12 quarters and measure the forecasting accuracy again in terms of out-of-sample RMSEs. The AR(1) model is estimated over the sample of 1997Q1 to 2010Q1. The AR(1) model is consequently re-estimated for every quarter from 2010Q2 to 2019Q4. The RMSE statistics of GDP, household consumption, and investment are reported in log levels. The RMSE statistics of the variables inflation of the Netherlands is reported as the first difference log of the GDP deflator. The RMSE statistic of the Euribor rate is reported as the quarterly rate. The Euribor rate is entered as the quarterly rate. We use the AR(1) specification as benchmark as this model specification minimized the Aikake and Bayesian information criteria. The agent based models perform worse in short-term forecasting but perform similarly in long-term forecasting as the AR(1) model. Moreover, the OC-ABM  has significantly better forecasting performance than the AR(1) for GDP, household consumption and investment forecasting.\\
+\begin{table}[!h]
+	\caption{Out-of-sample forecast performance} 
+	\label{table:rmse_abm}
+	\centering
+    
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & Euribor \\
+			\midrule
+			AR(1) & \multicolumn{5}{l}{\textit{RMSE-statistic for different forecast horizons}} \\  \midrule
+			\input{tabs/rmse_ar} 
+               \\ \midrule
+   			ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/base/calibrated/rmse_abm}
+               \\ \midrule
+            EH-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_abm}
+               \\ \midrule
+
+			OC-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_abm}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. The VAR(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.
+	\end{tablenotes}
+\end{table}
+
+
+\begin{figure}[!h]
+	\centering
+\includesvg[width=.99\textwidth]{figs/optimal_consumption/calibrated/abm_growth_fig.svg}
+ \caption{ Graphical representation of the forecasting performance of forecasting the growth rate and inflation from 2014:Q4-2017:Q4 of the OC-ABM (red line), the VAR model (green line) compared with observed Eurostat data for the Netherlands (blue line). The 90 per cent confidence interval is depicted by the shaded area around the mean trajectory. Model results are obtained as an average of 100 Monte Carlo simulations.}
+   \label{fig:gvamacro_growthinflation_yq}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includesvg[width=\textwidth]{figs/optimal_consumption/calibrated/abm_yearly_fig.svg}
+	\caption{Graphical representation of the forecasting performance from 2014:Q4-2017:Q4 of the OC-ABM (red line), the AR model (green line) compared with observed Eurostat data for the Netherlands (blue line). The variables GDP, household consumption, investmentment, government consumption, and imports are measured in real terms. The 90 per cent confidence interval is depicted by the shaded area around the mean trajectory. Model results are obtained as an average of 100 Monte Carlo simulations.}     \label{fig:gvamacro_gvaetal_y}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includesvg[width=\textwidth]{figs/optimal_consumption/calibrated/abm_quarterly_fig.svg}
+ \caption{Graphical representation of the forecasting performance from 2014:Q4-2017:Q4 of the OC-ABM (red line), the AR model (green line) compared with observed Eurostat data for the Netherlands (blue line). The variables GDP, household consumption, investmentment, government consumption, and imports are measured in real terms. The 90 per cent confidence interval is depicted by the shaded area around the mean trajectory. Model results are obtained as an average of 100 Monte Carlo simulations.}
+\label{fig:gvamacro_gvaetal_q}
+\end{figure}
+In figure \ref{fig:gvamacro_growthinflation_yq}
+ we can see the forecast of GDP growth and inflation for 2014Q4 to 2017Q4. The thick lines are the mean of the Monte Carlo forecasts whereas the shaded area is the 90 percent confidence interval. The ABM forecasts quarterly and yearly GDP growth accurately, whereas it tends to underestimate annual inflation. In figure   \ref{fig:gvamacro_gvaetal_y}
+ we see annual forecasts of the ABM and the VAR model. GDP and consumption are tracked very closely by the ABM whereas the VAR model performs less well. Government consumption falls still within the 90 percent confidence interval but the mean of the Monte Carlo forecasts is not so close. The data of investment, exports, and imports leave the confidence interval of the Monte Carlo forecasting indicating less good performance. We see a similar performance in figure \ref{fig:gvamacro_gvaetal_q} where GDP and consumption is forecasted quite well by the ABM and less well by the VAR model. The ABM seems to follow the hump that occurs in the data especially well. The ABM performs less well for forecasting investing, government consumption, exports, and imports.
+ \clearpage
+ 
+\subsection{Conditional Forecasts}
+We also test the forecasting performance by conditioning the forecasting of the models on the realized paths of real exports, real imports, and real government consumption. Conditional forecasts of the ABMs are realized by generating the realized paths of the exogenous variables. The expectations within the model are replaced with an ARX(1) rule instead of the AR(1) rule. For further explanation see section \ref{\label{sec:abmconditional}.\\ 
+
+The VARX(1) model is estimated over the sample of 1997Q1 to 2010Q1. The VARX(1) model is consequently re-estimated for every quarter from 2010Q2 to 2016Q4. The variable GDP is entered as the first differences of the log of the variables. The variable inflation of the Netherlands is entered as the first difference log of the GDP deflator. We use the VARX(1) specification as benchmark since this model specification minimized the Aikake and Bayesian information criteria. 
+
+In table \ref{table:rmse_validation_abmx} we can see that again the ABMs perform worse in short-term forecasting but perform better in long-term forecasting of gdp. The agent based models outperform the VARX(1) model in terms of short-term inflation forecasting. The OC-ABM is the best performing model of the all the agent based models in general. In table \ref{table:rmse_abmx} we compare the three ABMs with the ARX(1) model in forecasting GDP, inflation, household consumption, and investment. We can observe that the ABMs outperform the ARX(1) in forecasting investment. The ABMs outperform the ARX(1) model in long-term forecasting of GDP. The ARX(1) model has better short-term forecasting performance of household consumption.
+\begin{table}[!h]
+	\caption{Conditional forecast performance} 
+	\label{table:rmse_validation_abmx}
+	\centering
+		\begin{tabular}{lll}
+			\toprule
+			& GDP & Inflation \\
+			\midrule
+			VARX(1) & \multicolumn{2}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_validation_varx.tex}
+            \\ \midrule
+   			ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/base/calibrated/rmse_validation_abmx}
+			\\ \midrule 
+            EH-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/extended_heuristic/calibrated/rmse_validation_abmx}
+			\\ \midrule 
+			OC-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/optimal_consumption/calibrated/rmse_validation_abmx.tex}
+			\\ \bottomrule \
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Conditional forecast performance } 
+	\label{table:rmse_abmx}
+	\centering
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/calibrated/rmse_abmx.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_abmx.tex} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_abmx.tex}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+\pagebreak
+\subsection{Unconditional Forecast results with ARX expectations}
+In the previous section, we observed that the conditional ABM with ARX expectations outperformed the standard ABM in terms of forecasting accuracy. To assess how much of this improvement was due to the conditioning on data, we also conducted an unconditional forecasting experiment using the same agent-based model with ARX(1) expectations (see section \ref{sec:abmunconditional}). The results, see table \ref{table:rmse_validation_abmx_uf} and \ref{table:rmse_abmx_uf}, show that the unconditional ABMs with ARX expectations fall between the unconditional ABMs and the conditional ABMs with ARX expectations. This suggests that AR expectations are too simplistic and that VARX(1) expectations reflect real exptations better.
+\begin{table}[!h]
+	\caption{Conditional forecast performance} 
+	\label{table:rmse_validation_abmx_uf}
+	\centering
+		\begin{tabular}{lll}
+			\toprule
+			& GDP & Inflation \\
+			\midrule
+			VARX(1) & \multicolumn{2}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_validation_varx.tex}
+            \\ \midrule
+   			ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/base/calibrated/rmse_validation_abmx_uf}
+			\\ \midrule 
+            EH-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/extended_heuristic/calibrated/rmse_validation_abmx_uf}
+			\\ \midrule 
+			OC-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/optimal_consumption/calibrated/rmse_validation_abmx.tex}
+			\\ \bottomrule \
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VARX(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Unconditional forecast performance } 
+	\label{table:rmse_abmx_uf}
+	\centering
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/calibrated/rmse_abmx_uf.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_abmx_uf} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_abmx_uf.tex}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the ARX(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+
+
+\clearpage
+\subsection{Sectoral Forecasts}
+ We have shown that the three ABMs generally outperform the benchmark models in long-term forecastign and perform worse in short-term forecasting when forecasting macro-aggregates. An additional advantage of the ABM setup is that we can decompose the model into any level of granularity that is desired. We decompose the model into sectoral component according the statistical classification of economic activities according to the European Community (NACE Rev. 2). We test the out-of-sample forecasting performance of the extended household ABM and the base ABM and compare it to the VAR model while forecasting the log differences of sectoral gross value added (GVA). We use the VAR(1) model as the it minimizes the Aikake and Bayesian information criterion. The VAR(1) model is estimated over the sample of 1997Q1 to 2010Q1. The VAR(1) model is consequently re-estimated for every quarter from 2010Q2 to 2019Q4. We calibrated the ABMs for the reference quarters 2010Q1 to 2019Q4 and used 100 Monte Carlo simulations.
+\begin{table}[!h]
+	\caption{Out-of-sample forecast performance of sectoral gross value added (GVA)} 
+	\label{table:rmse_abm_nace10}
+	\centering
+	\resizebox{\columnwidth}{!}{
+		\begin{tabular}{lllllllllll}
+			\toprule
+			& A & B, C, D and E & F & G, H and I & J & K & L & M and N & O, P and Q & R and S \\
+			\midrule
+			VAR(1) & \multicolumn{10}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+		  \input{tabs/rmse_ar_nace10} \\ \midrule
+			ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/base/calibrated/rmse_abm_nace10} 
+   \\ \midrule
+   			EH-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_abm_nace10} 
+        \\ \midrule
+			OC-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/base/calibrated/rmse_abm_nace10.tex}
+			\\ \bottomrule
+		\end{tabular}
+	}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: Gross value added is depicted for the following sectors: Agriculture, forestry and fishing (A); Industry (except construction) (B, C, D and E); Manufacturing (C); Construction (F); Wholesale and retail trade, transport, accommodation and food service activities (G, H and I); Information and communication (J); Financial and insurance activities (K); Real estate activities (L); Professional, scientific and technical activities, and administrative and support service activities (M and N); Public administration, defence, education, human health and social work activities (O, P and Q); Arts, entertainment, and recreation, and other service activities (R and S). \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. The VAR(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+In table \ref{table:rmse_abm_nace10} we can see the results of the forecasting comparison. The ABMs outperform the VAR model when forecasting some sectors and the VAR model also outperforms the ABMs at forecasting other sectors. 
+\subsection{Decompositions of agent based model}
+ We would like to stress that the model is stock-flow consistent while also complying the rules and conventions of national accounting (ESA). The model adheres to the double-bookkeeping principle for all forecasts. This implies that every flow within the model is an outflow for one agent (use of funds) and an inflow for another agent (source of funds). This means that we keep track of all in- and outflows of all the agent. As a consequence, we can decompose model in any way we want. In figure \ref{fig:national_accounting} we show this by the decomposition of GDP using the production, income, and expenditure definition of GDP. We can decompose the forecasts on sectoral level as we did with the previous forecasting test. Moreover, we can decompose GDP by seeing how income is distributed over the economy or how income is consumed over the economy.
+
+\begin{figure}[!h]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/Production_approach.png}
+        \caption{Production approach}
+        \label{fig:production_approach}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/income_approach.png}
+        \caption{Income approach}
+        \label{fig:income_approach}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/expenditure_approach.png}
+        \caption{Expenditure approach}
+        \label{fig:expenditure_approach}
+    \end{subfigure}
+    
+    \caption{Decomposition of GDP forecasts of the OC-ABM model using the production, income, and expenditure definitions of GDP. The dashed lines are the values observed from the data. The full coloured areas are the average ABM forecast results for the period (2014:Q4-2017:Q4).}
+    \label{fig:national_accounting}
+\end{figure}
+
+
+In conclusion, the optimal consumption agent based model performs the best out of all agent based models and has significantly outperforms the benchmark models in long-term forecasting. The benchmark models generally perform better in short-term forecasting. 

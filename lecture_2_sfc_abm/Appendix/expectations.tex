@@ -1,0 +1,30 @@
+\section{ARX Expectations for the Agent-Based Models} \label{sec:abmconditional}
+We generate forecasts based on predetermined paths for imports, exports, and government consumption, which aligns with a small open economy framework and incorporates exogenous policy decisions. In this context, we treat imports, exports, and government consumption as exogenously determined variables derived from empirical data. Consequently, we substitute Equations \eqref{eq:importsar}, \eqref{eq:exportsar}, and \eqref{eq:govar} with the actual observed data for imports, exports, and government consumption.
+
+Furthermore, within this framework, we assume that agents' forecasts incorporate expectations regarding imports, exports, and government consumption. Therefore, we replace Equations \eqref{eq:growthar} and \eqref{eq:expected_inflation} and posit that expectations for economic growth and inflation are modeled using an autoregressive model with exogenous predictors and a lag order of one (ARX(1)). In this setup, expectations for economic growth are formulated according to the following ARX(1) rule: 
+\begin{equation} \label{eq:growtharx}
+	\mathcal{E}^*(Y_t) = \alpha^{\mathrm{Y}}_{t} \log \left(\sum_i Y_{I,t-1}\right) + \gamma^{\mathrm{I}}_{t}\log(Y^{\mathrm{I}}_{t}) + \gamma^{\mathrm{G}}_{t}\log(C^{\mathrm{G}}_{t}) + \gamma^{\mathrm{E}}_{t}\log(C^{\mathrm{E}}_{t}) + \beta^{\mathrm{Y}}_{t} + \epsilon^{\mathrm{Y}}_{t},
+\end{equation}
+where \(\alpha^{\mathrm{Y}}_{t}\), \(\gamma^{\mathrm{I}}_{t}\), \(\gamma^{\mathrm{E}}_{t}\), \(\gamma^{\mathrm{G}}_{t}\), \(\beta^{\mathrm{Y}}_{t}\), and \(\epsilon^{\mathrm{Y}}_{t}\) are re-estimated in each period based on the time series data for the aggregate output of firms \(\sum_i Y_{i}(t^{\prime})\) along with the exogenous predictors: imports \(Y^{\mathrm{I}}(t^{\prime})\), exports \(C^{\mathrm{E}}(t^{\prime})\), and government consumption \(C^{\mathrm{G}}(t^{\prime})\), where \(t^{\prime} = -T^{\prime}, -T^{\prime}+1, -T^{\prime}+2, \ldots, 0, 1, 2, \ldots, t-1\). Output, imports, exports, and government consumption are all expressed in log levels.
+
+Similarly, we model the expectations of inflation as an autoregressive model with exogenous predictors and lag order one (ARX(1)): 
+\begin{equation}
+	\mathcal{E}^*(1+\pi_t) = \alpha^{\pi}_{t} \pi_{t-1} + \gamma^{\mathrm{I}}_{t}\log(Y^{\mathrm{I}}_{t}) + \gamma^{\mathrm{G}}_{t}\log(C^{\mathrm{G}}_{t}) + \gamma^{\mathrm{E}}_{t}\log(C^{\mathrm{E}}_{t}) + \beta^{\pi}_{t} + \epsilon^{\pi}_{t}
+	\label{eq:inflationarx}
+\end{equation}
+where \(\alpha^{\pi}_{t}\), \(\beta^{\pi}_{t}\), \(\gamma^{\mathrm{I}}_{t}\), \(\gamma^{\mathrm{E}}_{t}\), \(\gamma^{\mathrm{G}}_{t}\), and \(\epsilon^{\pi}_{t}\) are re-estimated each period based on the time series of inflation \(\pi(t^{\prime})\) and the exogenous predictors, which include imports \(Y^{\mathrm{I}}(t^{\prime})\), exports \(C^{\mathrm{E}}(t^{\prime})\), and government consumption \(C^{\mathrm{G}}(t^{\prime})\), where \(t^{\prime} = -T^{\prime}, -T^{\prime}+1, -T^{\prime}+2, \dots, 0, 1, 2, \dots, t-1\). As before, imports, exports, and government consumption are entered in log levels.
+
+\subsection{Unconditional ARX expectations}
+\label{sec:abmunconditional}
+We use the model mentioned above but now we do not condition on exogenous data. Instead we use a different timing for the exogenous variables and let the variables enter the model with lag t-1. This gives us the following alternative ARX(1) rule: 
+\begin{equation} \label{eq:growtharx}
+	\mathcal{E}^*(Y_t) = \alpha^{\mathrm{Y}}_{t} \log \left(\sum_i Y_{I,t-1}\right) + \gamma^{\mathrm{I}}_{t}\log(Y^{\mathrm{I}}_{t-1}) + \gamma^{\mathrm{G}}_{t}\log(C^{\mathrm{G}}_{t-1}) + \gamma^{\mathrm{E}}_{t}\log(C^{\mathrm{E}}_{t-1}) + \beta^{\mathrm{Y}}_{t} + \epsilon^{\mathrm{Y}}_{t},
+\end{equation}
+where \(\alpha^{\mathrm{Y}}_{t}\), \(\gamma^{\mathrm{I}}_{t}\), \(\gamma^{\mathrm{E}}_{t}\), \(\gamma^{\mathrm{G}}_{t}\), \(\beta^{\mathrm{Y}}_{t}\), and \(\epsilon^{\mathrm{Y}}_{t}\) are re-estimated in each period based on the time series data for the aggregate output of firms \(\sum_i Y_{i}(t^{\prime})\) along with the exogenous predictors: imports \(Y^{\mathrm{I}}(t^{\prime})\), exports \(C^{\mathrm{E}}(t^{\prime})\), and government consumption \(C^{\mathrm{G}}(t^{\prime})\), where \(t^{\prime} = -T^{\prime}, -T^{\prime}+1, -T^{\prime}+2, \ldots, 0, 1, 2, \ldots, t-1\). Output, imports, exports, and government consumption are all expressed in log levels. 
+
+Similarly, we model the expectations of inflation as an autoregressive model with exogenous predictors and lag order one (ARX(1)): 
+\begin{equation}
+	\mathcal{E}^*(1+\pi_t)= \alpha^{\pi}_{t} \pi_{t-1} + \gamma^{\mathrm{I}}_{t}\log(Y^{\mathrm{I}}_{t-1}) + \gamma^{\mathrm{G}}_{t}\log(C^{\mathrm{G}}_{t-1}) + \gamma^{\mathrm{E}}_{t}\log(C^{\mathrm{E}}_{t-1}) + \beta^{\pi}_{t} + \epsilon^{\pi}_{t},
+	\label{eq:inflationarx}
+\end{equation}
+where \(\alpha^{\pi}_{t}\), \(\beta^{\pi}_{t}\), \(\gamma^{\mathrm{I}}_{t}\), \(\gamma^{\mathrm{E}}_{t}\), \(\gamma^{\mathrm{G}}_{t}\), and \(\epsilon^{\pi}_{t}\) are re-estimated each period based on the time series of inflation \(\pi(t^{\prime})\) and the exogenous predictors, which include imports \(Y^{\mathrm{I}}(t^{\prime})\), exports \(C^{\mathrm{E}}(t^{\prime})\), and government consumption \(C^{\mathrm{G}}(t^{\prime})\), where \(t^{\prime} = -T^{\prime}, -T^{\prime}+1, -T^{\prime}+2, \dots, 0, 1, 2, \dots, t-1\). As before, imports, exports, and government consumption are entered in log levels.

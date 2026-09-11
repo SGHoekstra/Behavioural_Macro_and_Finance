@@ -1,0 +1,5 @@
+\babel@toc {english}{}\relax 
+\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
+\beamer@sectionintoc {2}{ABMs in micro}{30}{0}{2}
+\beamer@sectionintoc {3}{ABMs in Finance}{53}{0}{3}
+\beamer@sectionintoc {4}{ABMs in Macro}{74}{0}{4}

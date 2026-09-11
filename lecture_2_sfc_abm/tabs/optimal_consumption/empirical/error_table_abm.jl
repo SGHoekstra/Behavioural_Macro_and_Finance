@@ -1,0 +1,182 @@
+import BeforeIT as BIT
+using Dates
+using DelimitedFiles
+using Statistics
+using Printf
+using LaTeXStrings
+using CSV
+using HDF5
+using JLD2
+using FileIO
+using MAT
+
+nanmean(x) = mean(filter(!isnan,x))
+nanmean(x,y) = mapslices(nanmean,x; dims = y)
+
+# Helper functions for LaTeX table creation and stars notation
+function stars(p_value)
+    if p_value < 0.01
+        return "***"
+    elseif p_value < 0.05
+        return "**"
+    elseif p_value < 0.1
+        return "*"
+    else
+        return ""
+    end
+end
+
+
+dir = @__DIR__
+
+nation = "netherlands"
+
+if !@isdefined model_type
+    model_type = "base"
+end
+if !@isdefined distribution_type
+    distribution_type = "calibrated"
+end
+
+
+# Load calibration data (with figaro input-output tables)
+
+
+year_ = 2010
+number_years = 10
+number_quarters = 4 * number_years
+quarters_num = []
+year_m = year_
+max_year = 2019
+
+for month in 4:3:((number_years + 1) * 12 + 1)
+
+    global year_m = year_ + (month ÷ 12)
+    mont_m = month % 12
+    date = DateTime(year_m, mont_m, 1) - Day(1)
+
+    push!(quarters_num, BIT.date2num(date))
+
+end
+horizons = [1, 2, 4, 8, 12]
+number_horizons = length(horizons)
+number_variables = 5
+presample = 4
+
+
+data = matread(("./src/utils/" * "calibration_data/" * nation * "/data/1996.mat"))
+data = data["data"]
+
+
+forecast = fill(NaN, number_quarters, number_horizons, number_variables)
+actual = fill(NaN, number_quarters, number_horizons, number_variables)
+
+country = "netherlands_households_own_firms"
+
+
+quarter_num = quarters_num[1]
+model = load("./src/utils/data/" * country * "/" * model_type* "/" * distribution_type *"/predictions_abm_uf/" * string(year(BIT.num2date(quarter_num))) * "Q" * string(Dates.quarterofyear(BIT.num2date(quarter_num))) *".jld2","model_dict");
+number_of_seeds = size(model["real_gdp_quarterly"],2)
+
+for i in 1:number_quarters
+    quarter_num = quarters_num[i]
+
+    global model = load("./src/utils/data/" * country * "/" * model_type* "/" * distribution_type *"/predictions_abm_uf/" * string(year(BIT.num2date(quarter_num))) * "Q" * string(Dates.quarterofyear(BIT.num2date(quarter_num))) *".jld2","model_dict");
+    
+    for j in 1:number_horizons
+        global horizon = horizons[j]
+        forecast_quarter_num = BIT.date2num(lastdayofmonth(BIT.num2date(quarter_num) + Month(3 * horizon)))
+
+        if BIT.num2date(forecast_quarter_num) > Date(max_year, 12, 31)
+            break
+        end
+
+        actual[i, j, :] = hcat(collect([
+            log.(data["real_gdp_quarterly"][data["quarters_num"] .== forecast_quarter_num]),
+            log.(1 .+ data["gdp_deflator_growth_quarterly"][data["quarters_num"] .== forecast_quarter_num]),
+            log.(data["real_household_consumption_quarterly"][data["quarters_num"] .== forecast_quarter_num]),
+            log.(data["real_fixed_capitalformation_quarterly"][data["quarters_num"] .== forecast_quarter_num]),
+            (1 .+ data["euribor"][data["quarters_num"] .== forecast_quarter_num]).^(1/4)
+            ])...)
+
+        forecast[i, j, :] = hcat(collect([
+            log.(mean(model["real_gdp_quarterly"][repeat(model["quarters_num"] .== forecast_quarter_num,1,number_of_seeds)])),
+            log.(1 .+ mean(model["gdp_deflator_growth_quarterly"][repeat(model["quarters_num"] .== forecast_quarter_num,1,number_of_seeds)])),
+            log.(mean(model["real_household_consumption_quarterly"][repeat(model["quarters_num"] .== forecast_quarter_num,1,number_of_seeds)])),
+            log.(mean(model["real_fixed_capitalformation_quarterly"][repeat(model["quarters_num"] .== forecast_quarter_num,1,number_of_seeds)])),
+            (1 .+ mean(model["euribor"][repeat(model["quarters_num"] .== forecast_quarter_num,1,number_of_seeds)])).^(1/4)
+            ])...)
+
+        
+    end
+end
+
+h5open(dir * "/" * model_type* "/" * distribution_type *"/forecast_abm.h5", "w") do file
+    write(file, "forecast", forecast)
+end
+
+rmse_abm = dropdims(100 * sqrt.(nanmean((forecast - actual).^2,1)), dims=1)
+bias_abm = dropdims(nanmean(forecast - actual, 1), dims=1)
+error_abm = forecast - actual
+
+file_path = dir * "/forecast_ar.h5"
+
+forecast = h5open(file_path, "r") do file
+    read(file["forecast"])
+end
+
+rmse_ar = dropdims(100 * sqrt.(nanmean((forecast - actual).^2,1)), dims=1)
+error_ar = forecast - actual
+
+input_data = - round.( 100 * (rmse_abm .- rmse_ar) ./ rmse_ar, digits=1)
+input_data_S = fill("", size(input_data))
+
+for j in 1:length(horizons)
+    h = horizons[j]
+    for l in 1:number_variables
+        dm_error_abm = view(error_abm, :, j, l)[map(!,isnan.(view(error_abm, :, j, l)))]
+        dm_error_ar = view(error_ar, :, j, l)[map(!,isnan.(view(error_ar, :, j, l)))]
+        _, p_value = BIT.dmtest_modified(dm_error_abm,dm_error_ar, h)
+        input_data_S[j, l] = string(input_data[j, l]) * "(" * string(round(p_value, digits=2)) *", "* string(stars(p_value)) * ")"
+    end
+end
+
+tableRowLabels = ["1q", "2q", "4q", "8q", "12q"]
+dataFormat = "%.2f"
+tableColumnAlignment = "r"
+tableBorders = false
+booktabs = false
+makeCompleteLatexDocument = false
+
+latex = BIT.latexTableContent(input_data_S, tableRowLabels, dataFormat, tableColumnAlignment, tableBorders, booktabs, makeCompleteLatexDocument)
+
+open(dir * "/" * model_type* "/" * distribution_type *"/rmse_abm.tex", "w") do fid
+    for line in latex
+        write(fid, line * "\n")
+    end
+end
+
+
+input_data = round.(bias_abm, digits=4)
+input_data_S = fill("", size(input_data))
+
+for j in 1:length(horizons)
+    
+    h = horizons[j]
+    for l in 1:number_variables
+        mz_forecast = (view(error_abm, :, j, l) + view(actual, :, j, l))[map(!,isnan.(view(error_abm, :, j, l) + view(actual, :, j, l)))]
+        mz_actual = view(actual, :, j, l)[map(!,isnan.(view(actual, :, j, l)))]
+        _, _, p_value = BIT.mztest(mz_actual, mz_forecast)
+        input_data_S[j, l] = string(input_data[j, l]) * " (" * string(round(p_value, digits=3)) *", "* stars(p_value) * ")"
+    end
+end
+
+latex = BIT.latexTableContent(input_data_S, tableRowLabels, dataFormat, tableColumnAlignment, tableBorders, booktabs, makeCompleteLatexDocument)
+
+open(dir * "/" * model_type* "/" * distribution_type *"/bias_abm.tex", "w") do fid
+    for line in latex
+        write(fid, line * "\n")
+    end
+end
+
+

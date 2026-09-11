@@ -1,0 +1,147 @@
+\section{Forecasting Results of Empirical Distribution ABMs}
+\subsection{Tables}
+\begin{table}[!h]
+	\caption{Out-of-sample forecast performance} 
+	\label{table:rmse_ed_abm}
+	\centering
+    
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & Euribor \\
+			\midrule
+			AR(1) & \multicolumn{5}{l}{\textit{RMSE-statistic for different forecast horizons}} \\  \midrule
+			\input{tabs/rmse_ar} 
+               \\ \midrule
+   			ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/base/empirical/rmse_abm}
+               \\ \midrule
+            EH-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/extended_heuristic/empirical/rmse_abm}
+               \\ \midrule
+
+			OC-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/optimal_consumption/empirical/rmse_abm}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. The VAR(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.
+	\end{tablenotes}
+\end{table}
+
+
+
+\begin{table}[!h]
+	\caption{Conditional forecast performance} 
+	\label{table:rmse_ed_validation_abmx}
+	\centering
+		\begin{tabular}{lll}
+			\toprule
+			& GDP & Inflation \\
+			\midrule
+			VARX(1) & \multicolumn{2}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_validation_varx.tex}
+            \\ \midrule
+   			ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/base/empirical/rmse_validation_abmx}
+			\\ \midrule 
+            EH-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/extended_heuristic/empirical/rmse_validation_abmx}
+			\\ \midrule 
+			OC-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/optimal_consumption/empirical/rmse_validation_abmx.tex}
+			\\ \bottomrule \
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Conditional forecast performance } 
+	\label{table:rmse_ed_abmx}
+	\centering
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/empirical/rmse_abmx.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/empirical/rmse_abmx.tex} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/empirical/rmse_abmx.tex}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Conditional forecast performance} 
+	\label{table:rmse_ed_validation_abmx}
+	\centering
+		\begin{tabular}{lll}
+			\toprule
+			& GDP & Inflation \\
+			\midrule
+			VARX(1) & \multicolumn{2}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_validation_varx.tex}
+            \\ \midrule
+   			ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/base/empirical/rmse_validation_abmx_uf}
+			\\ \midrule 
+            EH-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/extended_heuristic/empirical/rmse_validation_abmx_uf}
+			\\ \midrule 
+			OC-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/optimal_consumption/empirical/rmse_validation_abmx.tex}
+			\\ \bottomrule \
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VARX(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Unconditional forecast performance } 
+	\label{table:rmse_ed_abmx}
+	\centering
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/empirical/rmse_abmx_uf.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/empirical/rmse_abmx_uf.tex} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/empirical/rmse_abmx_uf.tex}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Unconditional forecast performance } 
+	\label{table:rmse_ed_ed_abmx_uf}
+	\centering
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/empirical/rmse_abmx_uf.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/empirical/rmse_abmx_uf} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/empirical/rmse_abmx.tex}
+			\\ \bottomrule
+		\end{tabular}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the ARX(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+

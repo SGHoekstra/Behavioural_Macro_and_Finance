@@ -1,0 +1,948 @@
+
+\documentclass[9pt]{beamer}
+\usepackage[english]{babel}
+\usepackage{amsfonts}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{multicol}
+
+\bibliographystyle{abbrvnatsimple.bst} % The filename of the bibliography
+
+\usepackage{threeparttable}
+\bibliographystyle{abbrvnat} % The filename of the bibliography
+\setcitestyle{authoryear,open={(},close={)}} 
+\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography\usepackage{threeparttable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{graphics}
+\usepackage{svg}
+\captionsetup[figure]{font=footnotesize}
+
+\usepackage{appendixnumberbeamer} 
+
+\title[Dutch agent-based Model]{A Dutch agent-based Model with Optimally Behaving Households}
+
+\author[S.G. Hoekstra]{Steven Hoekstra \inst{1} \inst{2} \and Cars Hommes \inst{1} \inst{2} \inst{3}\and Frank Pijpers \inst{4} \inst{5}}
+\institute[UvA]{\inst{1} CeNDEF, University of Amsterdam, \qquad 
+                      \inst{2} Tinbergen Institute, \qquad
+                      \inst{3} Bank of Canada \and
+                      \inst{4} Statistics Netherlands, \qquad
+                      \inst{5} Korteweg de Vries institute for Mathematics, University of Amsterdam 
+                      }
+
+
+\date{}
+
+\titlegraphic{
+\includegraphics[width=5cm]{Images/uvalogo_g_en_Amsterdam_School_of_Economics.eps} 
+}
+
+
+
+\usetheme{Berlin} 
+\usecolortheme{beaver}
+
+\begin{document}
+
+\begin{frame} 
+    \maketitle
+\end{frame}
+
+\section{Introduction}
+\begin{frame}{Introduction}
+    \begin{itemize}
+        \item Extension of  an \textbf{agent-based model} based on \cite{poledna_economic_2019}.
+        \item \textbf{Stock flow consistent} model based on European System of Accounts.
+        \item Forecast performance of the ABM of \cite{poledna_economic_2019} is \textbf{similar or outperforms} VAR or DSGE models .
+        \item \textbf{Heterogeneous marginal propensity to consume} (MPC) via on household sector of HANK model of \cite{kaplan_monetary_2018}.
+        \item Calibration with Eurostat data and Central Bureau of Statistics Microdata.
+        \item  Internal and external validation by comparison of \textbf{auto- and cross-correlations} and \textbf{forecasting} respectively. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{What are agent-based model typical elements?}
+    \begin{columns}
+\begin{column}{0.5\textwidth}
+     \begin{itemize}
+        \item \textbf{Local} and/or \textbf{global} interaction with other agents or environment.
+        \item Decision making \textbf{heuristics} (not always). 
+        \item \textbf{non-rational} expectations.
+        \item Interaction based on \textbf{topology or network}.
+        \item Environment in which agents react.
+        \item Global dynamics are \textbf{emergent} from local interactions.
+    \end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}  
+        \begin{figure}
+        \centering
+    \includegraphics[width=\textwidth]{Images/ABMScheme.png}
+        \caption{A schematic of the elements of an agent-based model and their interactions. Source: \cite{haldane_interdisciplinary_2018}.}
+        \label{fig:enter-label}
+    \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+%\begin{frame}{What is an agent-based model?}
+%    \begin{columns}
+%\begin{column}{0.5\textwidth}
+%   \begin{itemize}
+%       \item Agents check whether neighbours are similar.
+%       \item Move if neighbours are not similar enough.
+%       \item Agents only interact with direct neighbours.
+%       \item Environment is the grid where the agents live.
+%       \item Segregation is emergent from local interactions.
+%   \end{itemize}
+%\end{column}
+%\begin{column}{0.5\textwidth}  
+%    \begin{figure}
+%        \centering
+%        \includegraphics[width =\textwidth]{Images/Schelling.png}
+%        \caption{One of the first economic agent-based model
+%        of \cite{schelling_models_1969}. }
+%        \label{fig:schelling}
+%    \end{figure}
+%\end{column}
+%\end{columns}
+%\end{frame}
+
+
+%\begin{frame}{Why agent-based models?}
+% \footnotesize
+% \begin{flushleft}
+%    \begin{table}[]
+%        \centering
+%\begin{tabular}{|m{3cm}|m{3cm}|m{3cm}|}
+%  \hline \normalsize \textbf{DSGE} & \normalsize  \textbf{ %TANK, HANK} & \normalsize  \textbf{ABM} \\
+% \hline
+% \hline
+% Representative agents & Heterogeneous agents (with %negligible impact for HANK) & Heterogeneous agents (with non-negligible impact)\\
+% \hline
+%Solved at the aggregate
+%level locally around steady state &- &Solved numerically at the
+%agent level globally\\ \hline
+%Dynamics around steady state & - & endogenous dynamics \\
+%\hline
+%Rational or
+%model-consistent
+%expectations & Bounded rationality
+%%through myopia or
+%limited foresight & Bounded rationality in
+%expectations \\
+%\hline
+%Agents optimize given
+%expectations & - & Agents use simple
+%heuristics or optimize given expectations calibrated to
+%micro and macro data \\
+%\hline
+%Match the historical
+%evolution of variables & - & Reproduce stylized facts
+%and match historical
+%evolution of variables and generate endogenous
+%business cycles \\
+%\hline
+%\hline
+%\end{tabular}
+%        \caption{Comparison of qualitative modelling aspects.}
+%        \label{tab:my_label}
+%\end{table}
+%    \end{flushleft}
+%    \normalsize
+%\end{frame}
+
+
+\begin{frame}{Research question}
+\begin{itemize}
+    \item \textbf{Does including heterogeneous marginal propensities to consume and household microdata increase forecasting performance of an agent-badsed model?}
+
+\end{itemize}
+    
+
+\end{frame}
+\begin{frame}{Model overview}
+    \begin{itemize}
+    \item  All economic activities classified by the \textbf{European System of Accounts}.
+    \item  \textbf{Complete GDP identity} using the production, income, and output approach.
+    \item  \textbf{Adaptive learning} instead of rational expectations.
+    \item \textbf{Decentralized market} via a search-and-matching mechanism with \textbf{trade frictions}.
+    \item \textbf{Multi-sector production network} calibrated with input-output tables.
+    \item  \textbf{Non-linear responses} and \textbf{endogenous economic crises} without exogenous shocks.
+    \item  Households have \textbf{heterogeneous marginal propensities to consume}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Model overview}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figs/Model.png}
+    \caption{Flow diagram of the model. }
+    \label{fig:enter-label}
+\end{figure}
+    
+\end{frame}
+\section{Households}
+
+\begin{frame}{Household optimization problem}
+\begin{itemize}
+    \item Households \textbf{maximizes lifetime utility} like \cite{kaplan_monetary_2018}.
+\end{itemize}
+
+
+\begin{equation}
+\max _{\{c_{h,t}, d_{h,t}, b_{h,t+1},k_{h,t+1}\}_{t \in \mathbb{N}}} \mathbb{E}_0^* \sum_{t=0}^{\infty} \beta^t \left(\frac{c_{h,t}^{1-\gamma}-1}{1-\gamma}\right)
+\end{equation}
+Such that
+\begin{equation}
+\begin{aligned}
+& p^h_t (1+\tau^{VAT})c_{h,t} = y_{h,t} +\left(1+r_t^b+\mathbb{I}_{\{b_{t+1}<0\}}r_{cc}\right) b_{h,t} -d_{h,t}-\chi(d_{h,t})-b_{h,t+1},\\
+& k_{h,t+1}= \left(1+r^k_t-\tau^K\right) k_{h,t}+d_{h,t},\\
+& b_{h,t+1}\geqslant -\underline{b}, \quad k_{h,t} \geqslant 0 . 
+\end{aligned}
+\end{equation}
+We moreover have that the cost of adjustment is given by
+\begin{equation}
+    \chi(d_{h,t})=x_0|d_{h,t}|^{x_1}, \quad x_0, x_1>0.
+\end{equation}
+
+
+\end{frame}
+
+\begin{frame}{Nonlinear household decisions}
+\small
+\begin{itemize}
+\item \textbf{Nonlinear implicit solution} of household optimization problem gives policy functions $c(y,k,b;\Gamma)$, $k^\prime(y,k,b;\Gamma)$, and $b^\prime(y,k,b;\Gamma)$, where $\Gamma =(p^h,r^k,r^b, r_{cc},\tau^{VAT},\tau^k)$.
+\item $y$ is income, $k$ is illiquid capital, $b$ is liquid capital.
+\item Compare this to the \textbf{linear consumption policy} rule of \cite{poledna_economic_2019} given by $c(y^{disp})= \psi * y^{disp}$.
+\item Essentially we relax constant marginal propensity consume to heterogeneous marginal propensity to consume.
+\end{itemize}
+\end{frame}
+\begin{frame}{Expectations}
+\begin{itemize}
+\item Rational expectations are relaxed to \textbf{adaptive expectations}.
+    \item Return rates are believed to follow \textbf{optimal AR(1) rules}
+\begin{align}    \mathbb{E}^*_t[r^k_{t+1}]&=\alpha^k_{t} r^k_t +\beta^k_{t}+\epsilon^k_t,\\    \mathbb{E}^*_t[r^b_{t+1}]&=\alpha^b_{t} r^b_t +\beta^b_{t}+\epsilon^b_t, \\
+ \mathbb{E}^*_t[\pi_{t+1}] &=\alpha^\pi_t \pi_t+\beta^\pi_{t}+\epsilon^\pi_{t}, \\
+\mathbb{E}^*_t[w_{t+1}]&=\alpha^w_{t} w_t +\beta^w_{t}+\epsilon^w_t. 
+\end{align}
+\item We recalculate the optimal policy functions as the parameters of the expectations processes are updated each period.
+\end{itemize}
+\end{frame}
+\begin{frame}{Heterogeneous Marginal Propensity to Consumption}
+    \begin{figure}[h!]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim = {6cm 3cm 6cm 4cm}, clip]{Images/plot1.png}
+        \caption{Consumption (Capital vs. Savings)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim = {6cm 3cm 6cm 4cm}, clip]{Images/plot2.png}
+        \caption{Consumption (Capital vs. Income)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth, trim = {6cm 3cm 6cm 4cm}, clip]{Images/plot3.png}
+        \caption{Consumption (Savings vs. Income)}
+    \end{subfigure}
+
+    \end{figure}
+\end{frame}
+
+\section{Remainder of Model}
+
+\begin{frame}{Firms}
+    \begin{itemize}
+        \item Firms produce output using labour, intermediate inputs and raw material, and capital using a \textbf{Leontief} production function $Y_{i,t}=\min \left(Q_{i,t}^{\mathrm{S}}, \beta_i M_{i,t}, \alpha_{i,t} N_{i,t}, \kappa_i K_{i,t-1}\right).$
+        \item Firms face demand via the \textbf{decentralized markets}.
+        \item Firms set quantity and price based on \textbf{boundedly rational expectations} of \textbf{growth and inflation}.
+        \item Firms can finance expenditures by \textbf{borrowing} from the bank.
+        \item Firms can become \textbf{bankrupt} if they are both insolvent and have negative equity value.
+            \hyperlink{Firm}{\beamerbutton{Extensive description}}
+    \end{itemize}
+\end{frame}
+\begin{frame}{Input-output network}
+\begin{figure}
+    \centering
+    \includegraphics[trim = 3cm 3cm 3cm 3cm, clip, width = 0.6\textwidth]{figs/Rplot03.png}
+    \captionsetup{singlelinecheck=off}
+    \caption[foo bar]{Intermediate consumption between 19 industries derived from Eurostat input-output table.}
+    \label{fig:IO}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Remainder of model}
+    \begin{itemize}
+        \item Government consumes at the goods market, levies taxes, and redistributes social transfers.  \hyperlink{Government}{\beamerbutton{Extensive description}}
+    \label{ReturnOverview}
+        \item Banking sector provides loans to firms according to \textbf{minimum capital requirements} and a risk assessment.       \hyperlink{Bank}{\beamerbutton{Extensive description}}
+        \item Central bank sets policy rate and holds government debt.     \hyperlink{CentralBank}{\beamerbutton{Extensive description}}
+        \item Rest of the world imports and exports from the economy via the decentralized markets.         \hyperlink{Imports}{\beamerbutton{Extensive description}}
+    \end{itemize}
+\end{frame}
+
+
+
+
+
+\section{Calibration}
+\begin{frame}{Data Sources}
+    \begin{itemize}
+        \item Eurostat data
+        \item Census and business demography data
+        \item Input-output tables
+        \item Government statistics and sector accounts
+        \item Statutory guidelines, financial regulation (Basel III), and banking practices
+        \item CBS Register data 
+        \begin{itemize}
+            \item Household wealth data (VEHTAB, 7 GB per year)
+            \item Household income data (INHATAB, 9 GB)
+            \item Individual income data (INPATAB, 9 GB)
+    
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Empirical Density Function}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\linewidth]{Images/density.png}
+        \label{fig:density}
+    \end{figure}
+\end{frame}
+\begin{frame}{Calibration Process}
+    \begin{itemize}
+        \item agent-based model parameters are calibrated at 1:2000 scale.
+        \item Household initial conditions can be calibrated at different levels of heterogeneity:
+        \begin{itemize}
+            \item[1] proportional to sectoral income level,
+            \item[2] \textbf{using draws from multi-dimensional empirical distributions},
+            \item[3] directly with CBS microdata and rescaled such that microdata and Eurostat data match using ODISSEI infrastructure (more at the end).
+        \end{itemize}
+        \item Policy functions are calculated using a neural network following an adapted method of \cite{maliar_deep_2021}.
+    \end{itemize}
+\end{frame}
+
+\section{Internal Validity}
+
+\begin{frame}{Cross-correlations of OC-ABM}
+    \begin{figure}[!h]
+    \centering
+      \includesvg[width=0.75\textwidth]{figs/optimal_consumption/calibrated/abm_crosscorr.svg}
+    \caption{Cross-correlations with quarterly real gross domestic product.}
+    \label{fig:crosscorr-ABM}
+    
+\end{figure}
+\label{crosscorrelations}
+\hyperlink{autocorrelations}{\beamerbutton{Auto-correlations}}
+\end{frame}
+
+\begin{frame}{Cross-correlations of OC-ABM with ARX expectations}
+    \begin{figure}[!h]
+    \centering
+      \includesvg[width=0.75\textwidth]{figs/optimal_consumption/calibrated/crosscorr_abmx_uf.svg}
+      \caption{Cross-correlations with quarterly real gross domestic product. Here, firms and the bank have VARX expectations.}
+\end{figure}
+\end{frame}
+\section{Forecasting}
+\begin{frame}{Out-of-sample forecast performance OC-ABM}
+    \begin{table}[!h]
+	\caption{Out-of-sample forecast performance} 
+	\label{table:rmse_ABM}
+	\centering
+    \resizebox{0.7\columnwidth}{!}{
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & Euribor \\
+			\midrule
+			AR(1) & \multicolumn{5}{l}{\textit{RMSE-statistic for different forecast horizons}} \\  \midrule
+			\input{tabs/rmse_ar} 
+               \\ \midrule
+   			ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/base/calibrated/rmse_ABM}
+               \\ \midrule
+            EH-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_ABM}
+               \\ \midrule
+			OC-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to AR(1) model}} \\  \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_ABM}
+			\\ \bottomrule
+		\end{tabular}
+  }
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the AR(1) model.
+	\end{tablenotes}
+\end{table}
+\end{frame}
+
+
+\begin{frame}{Out-of-sample forecast performance OC-ABM}
+
+\begin{table}[!h]
+	\caption{Out-of-sample forecast performance} 
+	\label{table:rmse_validation}
+	\centering
+	\resizebox{0.9\columnwidth}{!}{
+		\begin{tabular}{lllp{2.2cm}lllll}
+			\toprule
+			& GDP & Inflation & Government consumption & Exports & Imports & GDP EA & Inflation EA & Euribor \\
+			\midrule
+			VAR(1) & \multicolumn{8}{l}{\textit{RMSE-statistic for different forecast horizons}}  \\ \midrule
+			
+			\input{tabs/rmse_validation_var}
+            \\ \midrule
+            ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+            \input{tabs/base/calibrated/rmse_validation_ABM}
+            \\ \midrule
+            EH-ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_validation_ABM}
+             \\ \midrule
+			OC-ABM & \multicolumn{8}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_validation_ABM}
+	        \\ \bottomrule
+		\end{tabular}
+	}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{9}:Q4. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.}
+	\end{tablenotes}
+\end{table}
+\label{ForecastTableReturn}
+\hyperlink{ForecastTable}{\beamerbutton{Second table of ABMX forecasts}} 
+\hyperlink{HABMXtable}{\beamerbutton{Table of OC-ABMX forecasts}}
+\end{frame}
+
+
+
+
+
+
+\begin{frame}{Out-of-sample forecast performance OC-ABM}
+    \begin{figure}[!h]
+	\centering
+	\includesvg[width=0.7\textwidth]{figs/optimal_consumption/calibrated/abm_quarterly_fig.svg}
+ \caption{\footnotesize Graphical representation of the forecasting performance from 2012:Q4-2014:Q4 of the OC-ABM (Red line), the VAR model (Green line) compared with observed Eurostat data for Netherlands (Blue line).}
+\label{fig:gvamacro_gvaetal_q}
+\end{figure}
+\label{ForecastfigsReturn}
+\hyperlink{Forecastfigs}{\beamerbutton{Yearly forecast figs}}
+\end{frame}
+
+
+
+
+
+\begin{frame}{Quarterly out-of-sample GDP forecast decomposition of OC-ABM}
+\begin{figure}[!h]
+    \centering
+    \begin{subfigure}[b]{0.322\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/Production_approach.png}
+        \caption{Production approach}
+        \label{fig:production_approach}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.322\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/income_approach.png}
+        \caption{Income approach}
+        \label{fig:income_approach}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.322\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth, trim={0 0 1cm 0},clip]{figs/optimal_consumption/calibrated/expenditure_approach.png}
+        \caption{Expenditure approach}
+        \label{fig:expenditure_approach}
+    \end{subfigure}
+    
+    \caption{\footnotesize The full coloured areas are the average ABM forecast results.}
+    \label{fig:national_accounting}
+\end{figure}
+\label{ForecastTableSectorsReturn}
+\hyperlink{ForecastTableSectors}{\beamerbutton{Table of sectoral forecasts}}
+\end{frame}
+
+\begin{frame}{Forecasting Summary}
+    \begin{itemize}
+        \item Optimal consumption ABM significantly outperforms statistical models long-term but not in short term forecasting.
+        \item Optimal consumption model performs best out of all ABMs.
+        \item If we use VARX expectations for firms and banks forecasts also improve relative to AR(1) expectation forecasts.
+        \item Conditional forecasting improves forecasts even more relative to benchmark.
+        \item For sectoral forecasts the ABMs outperform the statistical models in some sector but vice versa in other sectors.
+    \end{itemize}
+\end{frame}
+\section{Discussion}
+
+\begin{frame}{Limitations and future work}
+    \begin{itemize}
+        \item Needed to shift policy function to fit the data.
+        \item Run model at \textbf{1:1 scale}.
+        \item Calibrate the model with Statistic Netherlands microdata at \textbf{household/individual level}.
+        \item Do policy analysis with the model at household level.
+        \item Look into a better labour market matching mechanism.
+        \item Estimate parameters using Bayesian methods.
+    \end{itemize}
+\end{frame}
+\begin{frame}{Concluding Remarks}
+\begin{itemize}
+    \item Extended the agent-based model of \cite{poledna_economic_2019} with household optimization problem of \cite{kaplan_monetary_2018} and calibrated the model using CBS register data and Eurostat data. 
+    \item The optimal consumption ABM \textbf{outperforms on the long term but underperforms in the short term} due to a small bias the benchmark models in out-of-sample
+forecasting.
+\item The optimal consumption ABM performs best out of all AMBs tested.
+\item Internal validation gave us \textbf{hints for future research}.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    \begin{center}
+    {\Large Thank you very much for your attention!\\}
+    \vspace{3cm}
+  { \LARGE \textbf{Questions?}}
+\end{center}
+\end{frame}
+    
+
+\begin{frame}[allowframebreaks]{Bibliography}
+    \bibliography{example}
+\end{frame}
+
+
+\appendix
+\section{Firms}
+\begin{frame}{Decentralized market}
+\label{Firm}
+\begin{itemize}
+    \item  Each firm $i$ experiences demand $Q_{i, t}^d$ from consumers. Realized sales depend on production and inventory.
+    \footnotesize
+ \begin{equation} \displaystyle
+Q_{i,t}^{\mathrm{d}} \begin{cases} \displaystyle <Y_{i,t}+S_{i,t-1} & \text { if demand from consumers is smaller than supply from firm } i, \text { and } \\ \displaystyle =Y_{i,t}+S_{i,t-1} & \text { if demand from consumers exactly matches supply from firm } i, \text { and } \\ \displaystyle >Y_{i,t}+S_{i,t-1} & \text { if demand from consumers is larger than supply from firm } i,\end{cases}
+\end{equation}
+\item  \normalsize Sales $Q_{i, t}$ are the realized demand dependent on the supply available from firm $i$ after the production process has taken place:
+$$
+Q_{i, t}=\min \left(S_{i, t-1}+Y_{i, t}, Q_{i, t}^d\right)
+$$
+\item   Matching probabilities depend on size of the firm and on the price \footnotesize \begin{equation} 
+\begin{aligned}
+p r _{i,t}^{\text {price }}  & =\frac{e^{-2 P _{i,t} }}{\sum_{i \in I_{s=g}} e^{-2 P _{i,t} }} \\
+p r _{i,t}^{\text {size }}  & =\frac{Y _{i,t} }{\sum_{i \in I_{s=g}} Y _{i,t} } \\
+p r _{i,t}^{\text {cum }}  & =\frac{p r _{i,t}^{\mathrm{price}} +p r _{i,t}^{\text {size }} }{2}
+\end{aligned}
+\end{equation}
+\normalsize
+\end{itemize}
+        \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+\begin{frame}{Quantity and Price Setting}
+
+
+    \begin{itemize}
+        \item Quantity setting is based on expected growth rates
+        \begin{equation}
+Q_{i,t}^s = Q_{i,t-1}^d(1+\gamma_t^{\mathrm{e}} ).
+\end{equation} 
+\item  Expectations are formed using AR(1) rule or VAR(1) rule
+\item  Prices are determined the previous set price, expected inflation and the cost-structure of the firm: \footnotesize  $ 
+P_{i,t}=P_{i,t-1} \cdot \underbrace{\left(1+\pi_{i,t}^c\right)}_{\begin{array}{c}
+\text { Cost-Push } \\
+\text { Inflation }
+\end{array}} \cdot \underbrace{\left(1+\pi_t^e\right)}_{\begin{array}{c}
+\text { Built-In } \\
+\text { Inflation }
+\end{array}},
+$
+\\ \normalsize where \footnotesize
+\begin{equation}
+ \pi_{i,t}^c=\underbrace{\frac{\left(1+\tau^{S I F}\right) \bar{w}_i}{\bar{\alpha}_i}\left(\frac{\bar{P}_t^{H H}}{P_{i,t}}-1\right)}_{\text {Increase of unit labour costs }}+\underbrace{\frac{1}{\beta_i}\left(\frac{\sum_g a_{s g} \bar{P}_{g,t-1}}{P_{i,t}}-1\right)}_{\text {Increase of unit material costs }}+\underbrace{\frac{\delta_i}{\kappa_i}\left(\frac{\bar{P}^{C F}_{t-1}}{P_{i,t}}-1\right)}_{\text {Increase of unit capital costs }} \forall i \in I_S .
+\end{equation}
+    \end{itemize}
+    \normalsize
+        \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+
+\begin{frame}{External Finance}
+    It is possible that firms need to finance current o future expenditures by borrowing.  Therefore, each firm forecasts future cash flow $\Delta D_{i,t}^{\mathrm{e}}$, which is equal to the expected change in deposits $D_{i,t}$:
+\begin{equation}
+    \scriptstyle \Delta D_{i,t}^{\mathrm{e}} =\underbrace{\Pi_{i,t}^{\mathrm{e}} }_{\text {Exp. profit }}-\underbrace{\theta L_{i,t-1} }_{\text {Deb instalment }}-\underbrace{\tau^{\mathrm{FIRM}} \max \left(0, \Pi_{i,t}^{\mathrm{e}} \right)}_{\text {Corporate taxes }}-\underbrace{\theta^{\mathrm{DIV}}\left(1-\tau^{\mathrm{FIRM}}\right) \max \left(0, \Pi_{i,t}^{\mathrm{e}} \right)}_{\text {Dividend payout }},
+\end{equation}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Profits}
+    Firm profits $\Pi_{i,t}$ are an accounting measure.
+\begin{equation}
+\begin{aligned}
+\Pi_{i,t}= & \underbrace{P_{i,t} Q_{i,t}}_{\text {Sales }}+\underbrace{P_{i,t} \Delta S_{i,t}}_{\text {Inventory change }}-\underbrace{\left(1+\tau^{\mathrm{SIF}}\right) w_{i,t} N_{i,t} \bar{P}_t^{\mathrm{HH}} }_{\text {Labour costs }} \\
+& -\underbrace{\frac{1}{\beta_i} \bar{P}_{i,t} Y_{i,t}}_{\text {Material costs }}-\underbrace{\frac{\delta_i}{\kappa_i} P_{i,t}^{\mathrm{CF}}  Y_{i,t}}_{\text {Depreciation }}-\underbrace{\tau_i^{\mathrm{Y}} P_{i,t} Y_{i,t}-\tau_i^{\mathrm{K}} P_{i,t} Y_{i,t}}_{\text {Net taxes/subsidies on products/production}} \\
+& -\underbrace{r_t \left(L_{i,t-1}+\max \left(0,-D_{i,t-1}\right)\right)}_{\text {Interest payments }}+\underbrace{\bar{r}_t  \max \left(0, D_{i,t-1}\right)}_{\text {Interest received }}
+\end{aligned}
+\end{equation}
+
+ $r_t$ is the interest rate paid on outstanding loans.
+     \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Cash Flow}
+    Firm net cash flow is a measure how much liquidity is available for firms to use and is equal to changes in the deposit account:
+\begin{equation}
+\begin{aligned}
+& \Delta D_{i,t}=\underbrace{P_{i,t} Q_{i,t}}_{\text {Sales }}-\underbrace{\left(1+\tau^{\mathrm{SIF}}\right) w_{i,t} N_{i,t} \bar{P}_t^{\mathrm{HH}}}_{\text {Labor costs }}-\underbrace{\bar{P}_{i,t} \Delta M_{i,t}}_{\text {Material costs }} \\
+& -\underbrace{\tau_i^{\mathrm{Y}} P_{i,t} Y_{i,t}-\tau_i^{\mathrm{K}} P_{i,t} Y_{i,t}}_{\text {Net taxes/subsidies on products and production }}-\underbrace{\tau^{\mathrm{FIRM}} \max \left(0, \Pi_{i,t}\right)}_{\text {Corporate tax payments }} \\
+& -\underbrace{\theta^{\mathrm{DIV}}\left(1-\tau^{\mathrm{FIRM}}\right) \max \left(0, \Pi_{i,t}\right)}_{\text {Dividend payments }}-\underbrace{r\left(L_{i,t-1}+\max \left(0,-D_{i,t-1}\right)\right)}_{\text {Interest payments }} \\
+& +\underbrace{\bar{r}_t \max \left(0, D_{i,t-1}\right)}_{\text {Interest received }}-\underbrace{P_{i,t}^{\mathrm{CF}} I_{i,t}}_{\text {Investment costs }}+\underbrace{\Delta L_{i,t}}_{\text {New credit }}-\underbrace{\theta L_{i,t-1}}_{\text {Debt instalment }} . \\
+&
+\end{aligned}
+\end{equation}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{More Accounting and Insolvency}
+\begin{itemize}
+    \item Firm deposits are equal to deposits plus net cash flow:
+\begin{equation}
+    D_{i,t}=D_{i,t-1}+\Delta D_{i,t}
+\end{equation}
+\item Debt follows the following law of motion:
+\begin{equation}
+    L_{i,t}=(1-\theta) L_{i,t-1}+\Delta L_{i,t}
+\end{equation}
+\item Firm equity $E_{i,t}$ is computed as a balancing item 
+\begin{equation}
+    E_{i,t}=D_{i,t}+\sum_g a_{s g} \bar{P}_{g,t} M_{i,t}+P_{i,t} S_{i,t}+\bar{P}^{\mathrm{CF}}_t  K_{i,t}-L_{i,t} \quad \forall i \in I_s
+\end{equation}
+\item When a firm has negative balance on their deposit account (cash flow insolvent, i.e. $D_{i,t}<0$) and has negative equity value (balance sheet insolvent, i.e. $E_{i,t}<0$), they become insolvent.
+\end{itemize}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+
+
+\section{Government}
+\begin{frame}{Government Overview}
+\label{Government}
+
+    \begin{itemize}
+        \item Government purchases consumption on goods market
+        \item Government levies taxes and takes social security contributions
+        \item Government pays out social transfers
+    \end{itemize}
+       \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Government Revenue}
+    Taxes, social contributions and other transfers from all sectors form the revenue of the government:
+    \small
+\begin{equation}
+\begin{aligned}
+& Y^{\mathrm{G}}_t=\underbrace{\left(\tau^{\mathrm{SIF}}+\tau^{\mathrm{SIW}}\right) \bar{P}^{\mathrm{HH}}_t\sum_{h \in H^{\mathrm{E}}_t} w_{h,t}}_{\text {Social security contributions }}+\underbrace{\tau^{\mathrm{INC}}\left(1-\tau^{\mathrm{SIW}}\right) \bar{P}^{\mathrm{HH}}_t \sum_{h \in H^{\mathrm{E}}_t} w_{h,t}}_{\text {Labor income taxes }} \\
+& +\underbrace{\tau_h^{\mathrm{VAT}} \sum_h C_{h,t}}_{\text {Value added taxes }}+\underbrace{\tau^{\mathrm{INC}}\left(1-\tau^{\mathrm{FIRM}}\right) \theta^{\mathrm{DIV}}\left(\sum_i \max \left(0, \Pi_{i,t}\right)+\max \left(0, \Pi_{k,t}\right)\right)}_{\text {Capital income taxes }} \\
+& +\underbrace{\tau^{\mathrm{FIRM}}\left(\sum_i \max \left(0, \Pi_{i,t}\right)+\max \left(0, \Pi_{k,t}\right)\right)}_{\text {Corporate income taxes }}+\underbrace{\tau^{\mathrm{CF}} \sum_h I_{h,t}}_{\text {Taxes on capital formation }} \\
+& +\underbrace{\sum_i \tau_i^{\mathrm{Y}} P_{i,t} Y_{i,t}}_{\text {Net taxes/subsidies on products }}+\underbrace{\sum_i \tau_i^{\mathrm{K}} P_{i,t} Y_{i,t}}_{\text {Net taxes/subsidies on production }}+\underbrace{\tau_l^{\text {EXPORT }} \sum_l C_{l,t}}_{\text {Export taxes }} . \\
+&
+\end{aligned}
+\end{equation}
+\normalsize
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+
+\begin{frame}{Government Deficit and Debt}
+The government deficit (or surplus) is an accounting identity consisting of expenditures minus revenues:
+\begin{equation}
+\begin{aligned}
+\scriptscriptstyle \Pi^{\mathrm{G}}_t= & \underbrace{\sum_{h \in H^{\text {inact }}} \bar{P}^{\mathrm{HH}}_t s b^{\text {inact }}_t+\sum_{h \in H^{\mathrm{U}}_t} \bar{P}^{\mathrm{HH}}_t \theta^{\mathrm{UB}} w_{h,t}+\sum_h \bar{P}^{\mathrm{HH}}_t s b_t^{\text {other }}}_{\text {Social benefits and transfers }} \\
+& +\underbrace{\sum_j C_P{j,t}}_{\text {Government consumption }}+\underbrace{r^{\mathrm{G}} L_{t-1}^{\mathrm{G}}}_{\text {Interest payments }}-\underbrace{Y_t^{\mathrm{G}}}_{\text {Government revenues }} .
+\end{aligned}
+\end{equation}
+
+The government debt is previous period government debt plus the current deficit:
+\begin{equation}
+    L^{\mathrm{G}}_t=L^{\mathrm{G}}_{t-1}+\Pi^{\mathrm{G}}_t.
+\end{equation}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+\section{Banking Sector}
+\begin{frame}{Banking Sector}
+\label{Bank}
+
+\begin{itemize}
+    \item The bank provides loans to firms according to a risk assessment and a minimum capital requirement.
+    \item The bank has to form expectations to be able to do so.
+    \item The bank also holds deposits or provides credit to households.
+    \item The bank receives interest payments and also needs to pay interest payments.
+\end{itemize}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Bank loan provision}
+
+    The bank has to adhere to a minimum capital requirement coefficient $0<\zeta<1$:
+\begin{equation}
+\frac{E_{k,t}^{\mathrm{e}}}{\sum_{i=1}^I\left(L_{i,t}^{\mathrm{e}}+\Delta L_{i,t}\right)}=\frac{E_{k,t-1}}{\sum_{i=1}^I\left((1-\theta) L_{i,t-1}+\Delta L_{i,t}\right)} \geq \zeta,
+\end{equation}
+Due to fundamental uncertainty, the bank has to form expectations on the value of firm $i$ 's capital stock $\left(K_i^{\mathrm{e}}(t)\right)$ :
+\begin{equation}
+\frac{L_{i,t}^{\mathrm{e}}+\Delta L_{i,t}}{K_{i,t}^{\mathrm{e}}}=\underbrace{\frac{\overbrace{(1-\theta) L_{i,t-1}}^{=L_{i,t}^{\mathrm{e}}}+\Delta L_{i,t}}{\bar{P}^{\mathrm{CF}}_{t-1}\left(1+\pi_t^{\mathrm{e}}\right) K_{i,t-1}}}_{=K_{i,t}^{\mathrm{e}}} \leq \zeta^{\mathrm{LTV}} .
+\end{equation}
+      \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+\begin{frame}{Bank Profits}
+    The difference between interest revenues from loans provisions and costs due to interest payments on deposits held with the bank by firms and households are the bank's profits. 
+\begin{equation}
+    \begin{aligned}
+\Pi_{k,t}= & \underbrace{r_t\left(\sum_{i=1}^I L_{i,t-1}+\max \left(0,-D_{i,t-1}\right)+r_t \sum_{h=1}^H \max \left(0,-D_{h,t-1}\right)+\bar{r}_t \max \left(0, D_{k,t-1}\right)\right.}_{\text {Interest received }} \\
+& -\underbrace{\bar{r}_t \sum_{i=1}^I \max \left(0, D_{i,t-1}\right)-\bar{r}_t \sum_{h=1}^H \max \left(0, D_{h,t-1}\right)-\bar{r}_t \max \left(0,-D_{k,t-1}\right)}_{\text {Interest payments }}
+\end{aligned}
+\end{equation}
+The bank pays policy rate $\bar{r}_t$ on deposits.   The effective interest rate $r_t$ faced for bank credit or overdrafting is determined by the policy rate $\bar{r}_t$ and a fixed markup $\mu$ :
+\begin{equation}
+    r_t=\bar{r}_t+\mu
+\end{equation}
+\hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Bank Accounting}
+Bank equity is an accounting identity which is determined by bank profits or losses and is given by
+    \begin{equation}
+    \begin{aligned}
+E_{k,t}= & E_{k,t-1}+\Pi_{k,t}-\underbrace{\theta^{\text {DIV }}\left(1-\tau^{\mathrm{FIRM}}\right) \max \left(0, \Pi_{k,t}\right)}_{\text {Dividend payments }} \\
+& -\underbrace{\tau^{\mathrm{FIRM}} \max \left(0, \Pi_{k,t}\right)}_{\text {Corporate taxes }}-\underbrace{\sum_{i \in I^{\prime}}\left(L_{i,t}-D_{i,t}-\zeta^{\mathrm{b}} \bar{P}_i^{\mathrm{CF}}(t) K_{i,t}\right)}_{\text {Write-off of bad debt }},
+\end{aligned}
+\end{equation}
+      \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\label{CentralBank}
+
+\end{frame}
+\section{Central Bank}
+\begin{frame}{Central Bank}
+\label{CentralBank}
+    \begin{itemize}
+        \item Central bank sets policy rate according to Taylor rule.
+        \item The central bank receives revenues from interest payments on government debt.
+        \item The central bank receives or pays interest depending on the net position of the advances or reserves to the banking system.
+        \item The central bank balance sheet determines whether the economy is a net creditor or net debtor to the rest of the world.
+    \end{itemize}
+    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Interest Rate Setting}
+    A generalized Taylor rule\citep{taylor_discretion_1993} determines the policy rate. We use the same rule as \cite{blattner_towards_2010}, which includes a "growth" rule specification: 
+\begin{equation}
+    \bar{r}_t=\rho \bar{r}_{t-1}+(1-\rho)\left(r^*+\pi^*+\xi^\pi\left(\pi^{\mathrm{EA}}_t-\pi^*\right)+\xi^\gamma \gamma^{\mathrm{EA}}_t\right)
+\end{equation}
+where $\rho$ is a measure for gradual adjustment of the policy rate, $r^*$ is the real equilibrium interest rate, $\pi^*$ is the inflation target of the central bank, $ \xi^\pi$ is the weight the central bank puts on inflation targeting and $\xi^\gamma$ the weight placed on economic growth, respectively. 
+\hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Central Bank Accounting}
+    The difference between revenues from interest payments on government debt, as well as revenues or costs  is defined as the central bank's profits.
+\begin{equation}
+    \Pi^{\mathrm{CB}}_t=r^{\mathrm{G}} L^{\mathrm{G}}_{t-1}-\bar{r}_t D_{k,t-1} .
+\end{equation}
+The central bank's equity $E^{\mathrm{CB}}_t$ in an accounting identity dependent on its profits or losses and its past equity. 
+\begin{equation}
+    E^{\mathrm{CB}}_t=E^{\mathrm{CB}}_{t-1}+\Pi^{\mathrm{CB}}_t .
+\end{equation}
+\hyperlink{ReturnOverview}{\beamerbutton{Return}}
+
+\end{frame}
+\begin{frame}{Central Bank Accounting}
+    The following law of motion determines the net creditor/debtor position of the national economy to the rest of the world $\left(D^{\mathrm{RoW}}_t\right)$:
+\begin{equation}
+    D^{\mathrm{Row}}_t=D^{\mathrm{RoW}}_{t-1}-\underbrace{\left(1+\tau^{\mathrm{EXPORT}}\right) \sum_l C_{l,t}}_{\text {Exports }}+\underbrace{\sum_m P_{m,t} Q_{m,t}}_{\text {Imports }} .
+\end{equation}
+This connects the change in the amount of deposits in the banking system to the government deficit (surplus)  and to the balance of trade: 
+\begin{equation}
+    \begin{aligned}
+E^{\mathrm{CB}}_t+D^{\mathrm{RoW}}_t & =L^{\mathrm{G}}(t)-D_{k,t} \\
+& =L^{\mathrm{G}}_t-\sum_{i=1}^I D_{i,t}-\sum_{h=1}^H D_{h,t}-E_{k,t}+\sum_{i=1}^I L_{i,t} .
+\end{aligned}
+\end{equation}
+\hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+\section{Rest of The World}
+\begin{frame}{Rest of the World}
+\label{Imports}
+    \begin{itemize}
+        \item Supply of imports and and demand of exports are determined by an AR(1) processes.
+        \item Demand for imports and supply of exports are endogenous.
+        \item Realized imports and exports are determined by the search-and-matching mechanism.
+    \end{itemize}
+    \hyperlink{ReturnOverview}{\beamerbutton{Extensive description}}
+\end{frame}
+\begin{frame}{Imports}
+    \begin{itemize}
+        \item Total supply of Imports $Y^I_t$ in real terms follows an AR(1) rule.
+        \item Thus the $m$-th, $(m\in\{1, \ldots, S\})$, foreign firm representing an industry $s$ imports the principal product $g$: $    Y_{m,t}=c_{g=s}^I Y^{\mathrm{I}}_t.$
+        \item  Import price is assumed to develop similarly as the average sectoral domestic adjusted for expected inflation: $P_{m,t}=\overline{P}_{g,t-1} (1+\pi^e_t)$.
+        \item Sales of imports are equal to the realized demand which is an outcome of the search-and-matching process on the goods markets: $Q_{m,t}=\min \left(Y_{m,t}, Q_{m,t}^d\right)$.
+    \end{itemize}
+                    \hyperlink{ReturnOverview}{\beamerbutton{Return}}
+\end{frame}
+\begin{frame}{Exports}
+    \begin{itemize}
+        \item Total demand for export is $C^E_t$ is assumed to be exogenous and follows an AR(1) rule.
+        \item  The total demand for exports is uniformly distributed to $L$ foreign consumers and attributed to goods $g$ :
+\begin{equation}
+    C_{l,t}^{\mathrm{d}}=\frac{C^{\mathrm{E}}_t \sum_g c_{g,t}^{\mathrm{E}} \bar{P}_{g,t-1}\left(1+\pi^{\mathrm{e}}_t\right)}{L},
+\end{equation}
+\item The demand for exported goods by the $l$-th foreign consumer to purchase the $g$-th good is given by
+\begin{equation}
+    C_{l g,t}^{\mathrm{d}}=\frac{c_g^{\mathrm{E}} \bar{P}_{g,t-1}}{\sum_g c_g^{\mathrm{E}} \bar{P}_{g,t-1}} C_{l,t}^{\mathrm{d}}.
+\end{equation}
+\item Realized consumption by foreign consumers is again determined by the search-and-matching process on goods
+markets.
+    \end{itemize}
+                    \hyperlink{ReturnOverview}{\beamerbutton{Extensive description}}
+\end{frame}
+\section{Internal Validity}
+
+\begin{frame}{Variance Comparison}
+    \begin{table}[h!]
+    \centering
+    \caption{Comparison of variance of variables}
+    \begin{tabular}{c|cccc}
+    \hline
+         &GDP &Investment&Consumption&Employment \\
+         \hline \hline
+        Data &0.0122&0.0528& 0.0086 &0.0090 \\ \midrule
+        ABM/
+        +3
+        &    0.0111
+ & 0.0348 &0.0104
+ & 0.0041 \\
+        ABMX &    0.0150
+ &0.0403 & 0.0136& 0.0039 \\
+        H-ABM&0.0114&0.0518&0.0135 & 0.0084 \\
+        OC-ABMX &0.0121&0.0582&0.0176& 0.0081 \\
+    \hline
+    \end{tabular}
+    	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: Standard deviation of the variables real quarterly gross domestic product, real quarterly fixed capital formation, real quarterly household consumption, and quarterly employment of H-ABM. 
+	\end{tablenotes}
+    \label{tab:std}
+\end{table}
+\label{returnvariance}
+                    \hyperlink{Variance}{\beamerbutton{Return}}
+\end{frame}
+\begin{frame}{Auto-correlations of OC-ABM}
+    \begin{figure}
+    \centering
+    \includesvg[width=0.75\textwidth]{figs/optimal_consumption/calibrated/abm_autocorr.svg}
+		\caption{Auto-correlations with quarterly real gross domestic product.}
+    \label{fig:autocorr-ABM}
+\end{figure}
+\label{autocorrelations}
+                    \hyperlink{crosscorrelations}{\beamerbutton{Return}}
+\end{frame}
+\section{Forecasting}
+
+\begin{frame}{Out-of-sample forecast performance OC-ABMX}
+    \begin{table}[!h]
+	\caption{Conditional forecast performance} 
+	\label{table:rmse_validation_ABMx}
+	\centering
+    \resizebox{0.7\columnwidth}{!}{
+		\begin{tabular}{lll}
+			\toprule
+			& GDP & Inflation \\
+			\midrule
+			VARX(1) & \multicolumn{2}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_validation_varx.tex}
+            \\ \midrule
+   			ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/base/calibrated/rmse_validation_ABMx}
+			\\ \midrule 
+            EH-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/extended_heuristic/calibrated/rmse_validation_ABMx}
+			\\ \midrule 
+			OC-ABMX & \multicolumn{2}{l}{\textit{Percentage improvements (+) or losses (-) relative to VARX(1) model}} \\	\midrule \input{tabs/optimal_consumption/calibrated/rmse_validation_ABMx.tex}
+			\\ \bottomrule \
+		\end{tabular}
+  }
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4. The VARX(1) is estimated starting in 1997:Q1 and is re-estimated each quarter. The ABM is calibrated to \textcolor{black}{20} different reference quarters from 2012:Q1 to \textcolor{black}{2016:Q4} and the ABM results are obtained as an average of 100 Monte Carlo simulations. We report the p-values of the Diebold-Mariano tests \citep{harveyTestingEqualityPrediction1997}.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model. We denote  10 percent, 5 percent and 1 percent by $^{*}$, $^{**}$, and $^{***}$ respectively.}
+	\end{tablenotes}
+\end{table}
+\hyperlink{ForecastTableReturn}{\beamerbutton{Return}}
+\end{frame}
+
+\begin{frame}{Out-of-sample forecast performance OC-ABM}
+    \begin{figure}[!h]
+	\centering
+	\includesvg[width=0.7\textwidth]{figs/optimal_consumption/calibrated/abm_growth_fig.svg}
+	\caption{Graphical representation of the forecasting performance from 2012:Q4-2014:Q4 of the OC-ABM (black line), the VAR model (blue line) compared with observed Eurostat data for Netherlands (dashed line).} \label{fig:gvamacro_gvaetal_y}
+\end{figure}
+\label{Forecastfigs}
+\hyperlink{ForecastfigsReturn}{\beamerbutton{Return}}
+
+\end{frame}
+
+\begin{frame}{Out-of-sample forecast performance OC-ABMX}
+\label{HABMXtable}
+   \begin{table}[!h]
+	\caption{Conditional forecast performance } 
+	\label{table:rmse_ABMx}
+	\centering
+ \resizebox{0.7\columnwidth}{!}{
+		\begin{tabular}{llllll}
+			\toprule
+			& GDP & Inflation & Household consumption & Investment & euribor\\
+			\midrule
+			ARX(1) & \multicolumn{4}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+			\input{tabs/rmse_arx.tex} \\ \midrule
+           ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+           	\input{tabs/base/calibrated/rmse_ABMx.tex} \\ \midrule
+           EH-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_ABMx.tex} \\ \midrule
+			OC-ABMX & \multicolumn{4}{l}{\textit{Percentage improvements (+) or losses (-) relative to ARX(1) model}} \\ \midrule
+			\input{tabs/optimal_consumption/calibrated/rmse_ABMx.tex}
+			\\ \bottomrule
+		\end{tabular}
+  }
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: \textcolor{black}{The table depicts the RMSE of the forecast period 2010:Q1 to 201\textcolor{black}{6}:Q4.  We test the null hypothesis whether the tested models have the same accuracy as the VAR(1) model.}
+	\end{tablenotes}
+\end{table}
+\hyperlink{ForecastTableReturn}{\beamerbutton{Return}}
+\end{frame}
+
+\begin{frame}{Sectoral Forecasts}
+    \begin{table}[!h]
+
+	\caption{Out-of-sample forecast performance of sectoral gross value added (GVA)} 
+	\label{table:rmse_abm_nace10}
+	\centering
+	\resizebox{\columnwidth}{!}{
+		\begin{tabular}{lllllllllll}
+			\toprule
+			& A & B, C, D and E & F & G, H and I & J & K & L & M and N & O, P and Q & R and S \\
+			\midrule
+			VAR(1) & \multicolumn{10}{l}{\textit{RMSE-statistic for different forecast horizons}} \\ \midrule
+		  \input{tabs/rmse_ar_nace10} \\ \midrule
+			ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/base/calibrated/rmse_abm_nace10} 
+   \\ \midrule
+   			EH-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/extended_heuristic/calibrated/rmse_abm_nace10} 
+        \\ \midrule
+			OC-ABM & \multicolumn{5}{l}{\textit{Percentage improvements (+) or losses (-) relative to VAR(1) model}} \\ \midrule
+			\input{tabs/base/calibrated/rmse_abm_nace10.tex}
+			\\ \bottomrule
+		\end{tabular}
+	}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: Gross value added is depicted for the following sectors: Agriculture, forestry and fishing (A); Industry (except construction) (B, C, D and E); Manufacturing (C); Construction (F); Wholesale and retail trade, transport, accommodation and food service activities (G, H and I); Information and communication (J); Financial and insurance activities (K); Real estate activities (L); Professional, scientific and technical activities, and administrative and support service activities (M and N); Public administration, defence, education, human health and social work activities (O, P and Q); Arts, entertainment, and recreation, and other service activities (R and S).
+	\end{tablenotes}
+\end{table}
+\label{ForecastTableSectors}
+\hyperlink{ForecastTableSectorsReturn}{\beamerbutton{Return}}
+\end{frame}
+
+
+\end{document}

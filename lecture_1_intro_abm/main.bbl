@@ -1,0 +1,73 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Assenza et~al.(2015)Assenza, Delli~Gatti, and
+  Grazzini]{assenza_emergent_2015}
+T.~Assenza, D.~Delli~Gatti, and J.~Grazzini.
+\newblock Emergent dynamics of a macroeconomic agent based model with capital
+  and credit.
+\newblock \emph{Journal of Economic Dynamics and Control}, 50:\penalty0 5--28,
+  Jan. 2015.
+
+\bibitem[Axtell and Farmer(Forthcoming)]{axtell_agent-based_nodate}
+R.~L. Axtell and J.~D. Farmer.
+\newblock Agent-{Based} {Modeling} in {Economics} and {Finance}: {Past},
+  {Present}, and {Future}.
+\newblock \emph{Journal of Economic Literature}, Forthcoming.
+
+\bibitem[Brock and Hommes(1997)]{brock_rational_1997}
+W.~A. Brock and C.~H. Hommes.
+\newblock A {Rational} {Route} to {Randomness}.
+\newblock \emph{Econometrica}, 65\penalty0 (5):\penalty0 1059--1095, 1997.
+\newblock Publisher: Wiley, Econometric Society.
+
+\bibitem[Covi et~al.(2019)Covi, Montagna, and Torri]{covi_economic_2019}
+G.~Covi, M.~Montagna, and G.~Torri.
+\newblock Economic shocks and contagion in the euro area banking sector: a new
+  micro-structural approach.
+\newblock Technical report, May 2019.
+
+\bibitem[Eisenberg and Noe(2001)]{eisenberg_systemic_2001}
+L.~Eisenberg and T.~H. Noe.
+\newblock Systemic {Risk} in {Financial} {Systems}.
+\newblock \emph{Management Science}, 47\penalty0 (2):\penalty0 236--249, 2001.
+\newblock Publisher: INFORMS.
+
+\bibitem[Gilboa et~al.(2021)Gilboa, Postlewaite, and
+  Schmeidler]{gilboa_complexity_2021}
+I.~Gilboa, A.~Postlewaite, and D.~Schmeidler.
+\newblock The complexity of the consumer problem.
+\newblock \emph{Research in Economics}, 75\penalty0 (1):\penalty0 96--103, Mar.
+  2021.
+
+\bibitem[Haldane and Turrell(2018)]{haldane_interdisciplinary_2018}
+A.~G. Haldane and A.~E. Turrell.
+\newblock An interdisciplinary model for macroeconomics.
+\newblock \emph{Oxford Review of Economic Policy}, 34\penalty0 (1-2):\penalty0
+  219--251, Jan. 2018.
+
+\bibitem[Nier et~al.(2007)Nier, Yang, Yorulmazer, and
+  Alentorn]{nier_network_2007}
+E.~Nier, J.~Yang, T.~Yorulmazer, and A.~Alentorn.
+\newblock Network models and financial stability.
+\newblock \emph{Journal of Economic Dynamics and Control}, 31\penalty0
+  (6):\penalty0 2033--2060, June 2007.
+
+\bibitem[Poledna(2023)]{Canvas-presentation}
+S.~Poledna.
+\newblock Canvas: A canadian behavioral agent-based model.
+\newblock Technical report, International Institute for Applied Systems
+  Analysis (IIASA), 2023.
+
+\bibitem[Schelling(1969)]{schelling_models_1969}
+T.~C. Schelling.
+\newblock Models of {Segregation}.
+\newblock \emph{The American Economic Review}, 59\penalty0 (2):\penalty0
+  488--493, 1969.
+\newblock Publisher: American Economic Association.
+
+\end{thebibliography}

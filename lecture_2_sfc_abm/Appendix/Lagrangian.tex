@@ -1,0 +1,32 @@
+\section{Lagrangian formulation}
+We formulate our maximization problem as the following Lagrangian equation
+\begin{equation}
+\begin{aligned}
+\mathcal{L}= & \mathbb{E}^* \sum_{t=0}^{\infty} \beta^t\left[\frac{c_t^{1-\sigma}}{1-\sigma}\right. \\
+& +\lambda_t\left( w_t +\left(1+r_t^b\right) b_t-d_t-\chi (d_t)-(1+\tau^{VAT})c_t-b_{t+1}\right) \\
+& +\mu_t\left(\left(1+r^k_t-\tau^K\right) k_t+d_t-k_{t+1}\right) \\
+& +\nu_t(b_{t+1}+\underline{b}) \\
+& \left.+\xi_t k_t \right]
+\end{aligned}
+\end{equation}
+with complementary slackness conditions: $v_t(b_{t+1}+\underline{b}) \geqslant 0, \quad $ and
+$\xi_t k_t \geqslant 0$.
+The variables $\lambda_t$, $\mu_t$, $\nu_t$, and $\xi_t$ are Lagrange multipliers, which is the standard way to incorporate constraints into an optimization problem.
+The first order conditions are obtained by taking the first derivative with respect to the choice variables and setting the first derivative equal to zero. The choice variables to which the first order conditions correspond are denoted within the square brackets. The first order conditions are given by:
+\begin{align}
+    &\operatorname{FOC}\left[c_t\right]:& c_t^{-\sigma} &=\lambda_t  \\
+    &\operatorname{FOC}\left[d_t\right]:& \mu_t&=\lambda_t\left(1+x_0 x_1 d_t |d_t|^{x_1-2}\right)\\
+    &\operatorname{FOC}\left[b_{t+1}\right]:& \lambda_t &=  v_t+\beta \mathbb{E}_t^*\left[\lambda_{t+1}\left(1+r_{t+1}^b\right)\right]\\
+    &\operatorname{FOC}\left[k_{t+1}\right]:& \mu_t&=\beta \mathbb{E}_t^*\left[\left(1+r^k_{t+1}-\tau^K\right)+\xi_{t+1} \right]
+\end{align}
+
+This leads to the following equilibrium conditions:
+\begin{align}
+    c_t^{-\sigma}\left(1+x_0 x_1 d_t |d_t|^{x_1-2}\right) &=\beta \mathbb{E}_t^*\left[\left(1+r^k_{t+1}-\tau^K\right)+\xi_{t+1}\right] \label{eq1} \\
+    c_t^{-\sigma} &=  v_t+\beta \mathbb{E}_t^*\left[c_{t+1}^{-\sigma}\left(1+r_{t+1}^a\right)\right] \label{eq2} \\
+    (1+\tau^{VAT})c_t&=w_t+\left(1+r_t^b\right) b_t-d_t-\chi (d_t)-b_{t+1} \\
+    k_{t+1}& =\left(1+r^k_t-\tau^K\right) k_t+d_t
+\end{align}
+Here, equation \ref{eq1} equates the marginal cost of depositing illiquid assets with the marginal benefits of depositing illiquid assets.
+Equation \ref{eq2} equates the marginal cost of consuming with the marginal benefits of saving assets. Note that $\nu_t$ is the term that captures the value relaxing the borrowing constraint and $\xi_t$ captures the value of relaxing the nonnegative illiquid capital constraint. Additionally, note that assets of type $k$ are illiquid in the sense that households need to pay a cost for depositing into or withdrawing from their illiquid account. $\chi\left(d_t \right)$ denotes the cost of depositing for $d_t$ for a household with illiquid holdings $b_t$. As a result we have that there is a higher real return than the liquid asset, i.e., $r_t^k > r_t^a$. 
+The first order conditions describe the implicit solution of the household problem. 

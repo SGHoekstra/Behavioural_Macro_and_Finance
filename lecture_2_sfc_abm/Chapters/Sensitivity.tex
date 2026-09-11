@@ -1,0 +1,57 @@
+% Chapter Template
+
+\chapter{Sensitivity Analysis} % Main chapter title
+
+\label{Sensitivity Analysis} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+We want to investigate how different parameterizations affect the dynamics of the model. We take the same approach as \cite{caiani_agent_2016}. We do this by taking the parameterization which was found by the calibration process and changing one parameter at the time and observe whether this changes the dynamics of the models. If changing the parameters does not really change the dynamics of the model, then the parameter is weakly identified. We investigate the parameters $\beta$, $\sigma$, and $\theta^{DIV}$. We choose these parameters as $\beta$ and $\sigma$ directly affect the policy function of the households whereas $\theta^{DIV}$ affects how much profit is paid out to the households. Consequently, the parameters all effect household expenditure, which makes them good candidates for a comparison of the sensitivity analysis. For the sensitivity analysis, we have forecasted the periods 2014Q1-2024Q1 using 25 Monte Carlo simulations. The figures below show the average of the Monte Carlo simulations.\\
+
+In figure \ref{fig:sa_beta} we can see the sensitivity analysis for the parameter $\beta$ and in figure \ref{fig:sad_beta}
+ we can see the mean of forecasted time series. $\beta$ is the discount factor for the household optimization problem. A higher value of $\beta$ translates roughly to that households are more patient. Changing the parameter $\beta$ has a small but noticeable effect on the average of the Monte Carlo simulations. It is possible that the rescaling of the policy function affects how much the time series are affected by the change of the parameter. We do observe that for a low value of $\beta$, consumption is initially higher and drops later on. It could be that as agents are more impatient they consume more initially, but decrease their consumption later on due to reduced savings. Similarly, we can see that for a low value of $\beta$ GDP is initially higher but crops later on which could be due to the lower household consumption. We see similar patterns for investment and employment.\\
+
+ Similarly, in figure \ref{fig:sa_sigma} we can see the sensitivity analysis for the parameter $\sigma$ and in figure \ref{fig:sad_sigma}
+ we can see the trends of the sensitivity analysis for the parameter $\sigma$. $\sigma$ is the parameter which represents household risk aversion. The inverse of $\sigma$ is the intertemporal elasticity of substitution. Changing the parameter $\sigma$ has a very small effect on the average of the Monte Carlo simulations. Again it is possible that the rescaling of the policy function affects how much the time series are affected by the change of the parameter.\\ 
+
+ Finally, in figure \ref{fig:sa_theta} we can see the sensitivity analysis for the parameter $\theta^{DIV}$ and in figure \ref{fig:sad_theta}
+ we can see the trends of the sensitivity analysis for the parameter $\theta^{DIV}$. $\theta^{DIV}$ is the parameter which determines what fraction of the profits are paid out to the households. A higher value of $\theta^{DIV}$ directly increases disposable income of the households. Changing the parameter has very distinct effects on all variables. A higher value of $\theta^{DIV}$ translates into higher household consumption, a higher GDP, higher investment, and more employment. Note that this parameter is not affected by the rescaling of the policy function but it affects the inputs that go into the policy function. Therefore the rescaling of the policy function severely affects how the model reacts to changes in the parameters of $\beta$ and $\sigma$. The parameters $\beta$ and $\sigma$ are thus weakly identified as a result of the rescaling. This is another indication that the current method of solving the household model is not sufficient and should be changed in future work to ensure that the model can be calibrated correctly such that multiple moments can be matched instead of a single one. 
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm_beta.png}
+	\caption{Sensitivity analysis of the parameter $\beta$ of long-term forecasts of the H-ABM. The figure shows the average of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sa_beta}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm__trends_beta.png}
+	\caption{Sensitivity analysis of the parameter $\beta$ of long-term forecasts of the H-ABM. The figure shows the average of the trends of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sad_beta}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm_sigma.png}
+	\caption{Sensitivity analysis of the parameter $\sigma$ of long-term forecasts of the H-ABM. The figure shows the average of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sa_sigma}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm__trends_sigma.png}
+	\caption{Sensitivity analysis of the parameter $\sigma$ of long-term forecasts of the H-ABM. The figure shows the average of the trends of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sad_sigma}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm_theta_DIV.png}
+	\caption{Sensitivity analysis of the parameter $\theta^{DIV}$ of long-term forecasts of the H-ABM. The figure shows the average of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sa_theta}
+\end{figure}
+
+
+
+
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=.99\textwidth]{Figures/Sensitivity_Analysis_abm__trends_theta_DIV.png}
+	\caption{Sensitivity analysis of the parameter $\theta^{DIV}$ of long-term forecasts of the H-ABM. The figure shows the average of the trends of 25 Monte Carlo simulation for differing parameter values. The periods 2014:Q1-2024:Q1 are simulated. }\label{fig:sad_theta}
+\end{figure}
+
+

@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: abbrvnatsimple.bst
+Database file #1: example.bib
+Warning--empty institution in covi_economic_2019
+You've used 10 entries,
+            2757 wiz_defined-function locations,
+            681 strings with 6989 characters,
+and the built_in function-call counts, 4423 in all, are:
+= -- 410
+> -- 233
+< -- 6
++ -- 79
+- -- 69
+* -- 371
+:= -- 694
+add.period$ -- 33
+call.type$ -- 10
+change.case$ -- 55
+chr.to.int$ -- 10
+cite$ -- 21
+duplicate$ -- 193
+empty$ -- 360
+format.name$ -- 87
+if$ -- 904
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 8
+newline$ -- 61
+num.names$ -- 40
+pop$ -- 86
+preamble$ -- 1
+purify$ -- 43
+quote$ -- 0
+skip$ -- 143
+stack$ -- 0
+substring$ -- 195
+swap$ -- 13
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 110
+warning$ -- 1
+while$ -- 44
+width$ -- 0
+write$ -- 141
+(There was 1 warning)

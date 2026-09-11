@@ -1,0 +1,77 @@
+\begin{table}[!htbp]
+	\caption{Model parameters} \label{tab:parameter}
+	\centering
+	\resizebox{.82\columnwidth}{!}{
+	% \begin{ruledtabular}
+		\begin{tabular}{llrl}
+			\toprule
+			Parameter & Description & Value & Source\\
+			\midrule
+			$G$/$S$ & Number of products/industries & 62 & \multirow{6}{*}{\rotatebox[origin=c]{90}{\parbox[c]{2.25cm}{\centering census data, business demography data}}} \\ 
+			$H^{\mathrm{act}}$ & Number of economically active persons & 4729215 & \\ 
+			$H^{\mathrm{inact}}$ & Number of economically inactive persons & 4130385 & \\ 
+			$J$ & Number of government entities & 152820 & \\ 
+			$L$ & Number of foreign consumers & 305639 & \\ 
+			$I_{s}$ & Number of firms/investors in the $s$\textsuperscript{th} industry & see \Cref{table:sector_parameters} & \\ 
+			\midrule
+			$\bar{\alpha}_{i}$ & Average productivity of labour of the $i$\textsuperscript{th} firm & see \Cref{subsec:io} & \multirow{14}{*}{\rotatebox[origin=c]{90}{\parbox[c]{5cm}{\centering input-output tables}}} \\ 
+			$\kappa_{i}$ & Productivity of capital of the $i$\textsuperscript{th} firm & see \Cref{subsec:io} & \\ 
+			$\beta_{i}$ & Productivity of intermediate consumption of the $i$\textsuperscript{th} firm & see \Cref{subsec:io} & \\ 
+			$\delta_{i}$ & Depreciation rate for capital of the $i$\textsuperscript{th} firm & see \Cref{subsec:io} & \\ 
+			$\bar{w}_{i}$ & Average wage rate of firm $i$ & see \Cref{subsec:io} & \\ 
+			$a_{sg}$ & Technology coefficient of the $g$\textsuperscript{th} product in the $s$\textsuperscript{th} industry & see \Cref{subsec:io} & \\ 
+			$b^{\mathrm{CF}}_g$ & Capital formation coefficient of the $g$\textsuperscript{th} product (firm investment) & \Cref{table:sector_parameters} & \\ 
+			$b^{\mathrm{CFH}}_{g}$ & Household investment coefficient of the $g$\textsuperscript{th} product & \Cref{table:sector_parameters} & \\ 
+			$b^{\mathrm{HH}}_{g}$ & Consumption coefficient of the $g$\textsuperscript{th} product of households & \Cref{table:sector_parameters} & \\ 
+			$c^{\mathrm{G}}_g$ & Consumption of the $g$\textsuperscript{th} product of the government in mln. Euro & \Cref{table:sector_parameters} & \\ 
+			$c^{\mathrm{E}}_g$ & Exports of the $g$\textsuperscript{th} product in mln. Euro & \Cref{table:sector_parameters} & \\ 
+			$c^{\mathrm{I}}_g$ & Imports of the $g$\textsuperscript{th} product in mln. Euro & \Cref{table:sector_parameters} & \\ 
+			$\tau^{\mathrm{Y}}_{i}$ & Net tax rate on products of the $i$\textsuperscript{th} firm & \Cref{subsubsec:gov_behavioralparameters} & \\ 
+			$\tau^{\mathrm{K}}_{i}$ & Net tax rate on production of the $i$\textsuperscript{th} firm & \Cref{subsubsec:gov_behavioralparameters} & \\ 
+			\midrule
+			$\tau^{\mathrm{INC}}$ & Income tax rate & 0.2134 & \multirow{13}{*}{\rotatebox[origin=c]{90}{\parbox[c]{4cm}{\centering government statistics, sector accounts}}} \\ 
+			$\tau^{\mathrm{FIRM}}$ & Corporate tax rate & 0.0762 & \\ 
+			$\tau^{\mathrm{VAT}}$ & Value-added tax rate & 0.1529 & \\ 
+			$\tau^{\mathrm{SIF}}$ & Social insurance rate (employers' contributions) & 0.2122 & \\ 
+			$\tau^{\mathrm{SIW}}$ & Social insurance rate (employees' contributions) & 0.1711 & \\ 
+			$\tau^{\mathrm{EXPORT}}$ & Export tax rate & 0.0029 & \\ 
+			$\tau^{\mathrm{CF}}$ & Tax rate on capital formation & 0.0876 & \\ 
+			$\tau^{\mathrm{G}}$ & Tax rate on government consumption & 0.0091 & \\ 
+			$r^{\mathrm{G}}$ & Interest rate on government bonds & 0.0091 & \\ 
+			$\mu$ & Risk premium on policy rate & 0.0293 & \\ 
+			$\psi$ & Fraction of income devoted to consumption & 0.9394 & \\ 
+			$\psi^{\mathrm{H}}$ & Fraction of income devoted to investment in housing & 0.0736 & \\ 
+			$\theta^{\mathrm{DIV}}$ & Dividend payout ratio & 0.7768 & \\ 
+			\midrule
+			$\theta^{\mathrm{UB}}$ & Unemployment benefit replacement rate & 0.3586 & \multirow{6}{*}{\rotatebox[origin=c]{90}{\parbox[c]{2.5cm}{\centering Basel III, ECB statutes, banking practices, literature}}} \\
+			$\theta$ & Rate of instalment on debt & 0.05 & \\ 
+			$\zeta$ & Banks' capital ratio & 0.03 & \\ 
+			$\zeta^{\mathrm{LTV}}$ & Loan-to-value (LTV) ratio & 0.6 & \\ 
+			$\zeta^{\mathrm{b}}$ & Loan-to-capital ratio for new firms after bankruptcy & 0.5 & \\ 
+			$\pi^{*}$ & Inflation target of the monetary authority & 0.005 & \\ 
+			\midrule
+			$\alpha^{\mathrm{G}}$ & Autoregressive coefficient for government consumption & 0.9845 & \multirow{14}{*}{\rotatebox[origin=c]{90}{\parbox[c]{5.5cm}{\centering national accounts\\ (exogenously estimated)}}} \\ 
+			$\beta^{\mathrm{G}}$ & Scalar constant for government consumption & 0.1515 & \\ 
+			$\sigma^{\mathrm{G}}$ & Standard deviation of government consumption & 0.0112 & \\ 
+			$\alpha^{\mathrm{E}}$ & Autoregressive coefficient for exports & 0.9693 & \\ 
+			$\beta^{\mathrm{E}}$ & Scalar constant for exports & 0.3261 & \\ 
+			$\alpha^{\mathrm{I}}$ & Autoregressive coefficient for imports & 0.974 & \\ 
+			$\beta^{\mathrm{I}}$ & Scalar constant for imports & 0.2762 & \\ 
+			$\alpha^{\mathrm{Y}^{\mathrm{EA}}}$ & Autoregressive coefficient for euro area GDP & 0.9673 & \\ 
+			$\beta^{\mathrm{Y}^{\mathrm{EA}}}$ & Scalar constant for euro area GDP & 0.4817 & \\ 
+			$\alpha^{\pi^{\mathrm{EA}}}$ & Autoregressive coefficient for euro area inflation & 0.3834 & \\ 
+			$\beta^{\pi^{\mathrm{EA}}}$ & Scalar constant for euro area inflation & 0.0026 & \\ 
+			$\sigma^{\pi^{\mathrm{EA}}}$ & Standard deviation of euro area inflation & 0.0025 & \\ 
+			$\rho$ & Adjustment coefficient of the policy rate & 0.9263 & \\ 
+			$r^{*}$ & Real equilibrium interest rate & -0.0034 & \\ 
+			$\xi^{\pi}$ & Weight of the inflation target & 0.3214 & \\ 
+			$\xi^{\gamma}$ & Weight of economic growth & 1.2994 & \\
+			$C$ & Covariance matrix of euro area GDP and imports and exports & & \\ 
+			\bottomrule
+		\end{tabular}
+	% \end{ruledtabular}
+	}
+	\begin{tablenotes}
+		\footnotesize \item \textit{Note}: Model parameters for the reference quarter 2010:Q4. Exogenous autoregressive coefficients and parameters of the Taylor rule are estimated over the sample 1997:Q1 to 2010:Q4.
+	\end{tablenotes}
+\end{table}

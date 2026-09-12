@@ -66,6 +66,15 @@ jobs:
           name: generation-report
           path: generation_report.html
 
+      # The 2024 course site lives on the output branch, which was the previous
+      # Pages source. Copy it into the build so it stays reachable at /Fall23/
+      # once Pages points here. The output branch itself is never written to.
+      - name: Preserve the archived Fall23 site
+        run: |
+          git fetch --depth=1 origin output
+          git archive origin/output Fall23 | tar -x -C PlutoPages/_site
+          test -f PlutoPages/_site/Fall23/index.html
+
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:

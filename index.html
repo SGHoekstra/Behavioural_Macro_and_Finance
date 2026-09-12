@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="en">
+<head>
+
+<title>Behavioural Macro and Finance — Pluto.jl</title>
+
+
+<link rel="root" href="." />
+
+<link rel="icon" href="./assets/favicon.ico" />
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+
+<link rel="stylesheet" href="./assets/styles/index.css" type="text/css" />
+<link rel="stylesheet" href="./assets/styles/layout.css" type="text/css" />
+<script src="./assets/scripts/sidebar.js" type="module"></script>
+
+<link rel="pp-search-data" href="./pp_search_data.json" />
+<script src="https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js" integrity="sha256-DFDZACuFeAqEKv/7Vnu1Tt5ALa58bcWZegGGFNgET8g=" crossorigin="anonymous" defer></script>
+<script src="./assets/scripts/search.js" type="module" defer></script>
+
+<script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.js" integrity="sha256-wwYlfEzWnCf2nFlIQptfFKdUmBeH5d3G7C2352FdpWE=" crossorigin="anonymous" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.css" integrity="sha256-99PgDZnzzjO63EyMRZfwIIA+i+OS2wDx6k+9Eo7JDKo=" crossorigin="anonymous">
+
+<script type="importmap">{"imports":{"aVc6E":"./firebase-firestore.7f842f36.js","bEDS4":"./firebase-app.b603aaa4.js"}}</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.ca0dbe6e.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.a7d04aac.css"><script type="module" src="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/frontend.4541b03a.js"></script>
+    <meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+
+    
+<meta name="pluto-insertion-spot-meta">
+
+
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2a2928">
+    <meta name="color-scheme" content="light dark">
+
+    
+    
+    
+    <link rel="pluto-external-source" id="pluto-logo-big" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/logo.103597bc.svg">
+    <link rel="pluto-external-source" id="pluto-logo-small" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/favicon_unsaturated.9ed3a6f6.svg">
+
+    <script defer="">console.log("Pluto.jl, by Fons van der Plas (https://github.com/fonsp), Mikołaj Bochenski (https://github.com/malyvsen), Michiel Dral (https://github.com/dralletje), Παναγιώτης (Panagiotis) Γεωργακόπουλος (https://github.com/pankgeorg), Paul Berg (https://github.com/Pangoraw) and friends 🌈");</script>
+
+    <script src="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.2f9fc277.js" defer=""></script>
+
+    <!-- This doesn't do anything unless activated, and it makes sure parcel bundles this -->
+    <script id="iframe-resizer-content-window-script" src="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.7a04a462.js" crossorigin="anonymous" defer=""></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.f6933b66.css" type="text/css">
+
+    <meta rel="pluto-cdn-root" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/">
+    <script data-pluto-file="launch-parameters">
+window.pluto_notebook_id = undefined;
+window.pluto_isolated_cell_ids = undefined;
+window.pluto_notebookfile = undefined;
+window.pluto_disable_ui = true;
+window.pluto_slider_server_url = undefined;
+window.pluto_binder_url = "https://mybinder.org/v2/gh/fonsp/pluto-on-binder/v1.0.3";
+window.pluto_statefile = undefined;
+window.pluto_preamble_html = undefined;
+window.pluto_recording_url = undefined;
+window.pluto_recording_audio_url = undefined;
+</script>
+
+<meta name="pluto-insertion-spot-parameters">
+
+    <script src="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/editor.9e3719ed.js" type="module" defer=""></script>
+    <script src="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/frontend.ae6e0116.js"></script>
+
+    <link rel="pluto-external-source" id="vmsg-wasm" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/vmsg.56bb9389.wasm">
+    <!-- This script will be enabled by JS after the notebook has initialized to prevent taking up bandwidth during the initial load. -->
+    <link rel="pluto-external-source" id="MathJax-script" href="https://cdn.jsdelivr.net/gh/JuliaPluto/Pluto.jl@1.0.3/frontend-dist/tex-svg-full.b78c0ac1.js" type="text/javascript">
+    
+    
+<meta name="pluto-insertion-spot-preload">
+
+
+
+</head>
+<body>
+    <div id="pages-layout">
+        <button id="toggle-nav" title="Open navigation"></button>
+        <nav id="pages-sidebar">
+        <div>
+        <ul>
+                <li class="sidebar-about">
+        <div class="course-title">
+            
+            <h1><a href="."><span>Behavioural Macro and Finance</span></a></h1>
+            <h2><span>Agent-based models of the macroeconomy</h2>
+        </div>
+        <div class="authors">
+            by <a href='https://github.com/SGHoekstra'>Steven Hoekstra</a> &amp <a href='https://www.uva.nl'>Cars Hommes</a>
+        </div>
+    </li>
+    <li>
+        <div class="search-bar">
+            <form action="./search" method="GET">
+                <input type="search" name="q" placeholder="Search...">
+                <input type=submit value="🔎">
+            </form>
+        </div>
+    </li>
+
+            
+        <li>
+<h3>Getting started</h3>
+<ul>
+<li class=' lecture'><a href='./installation/'><span class="entry-number"></span> Running the notebooks</a></li>
+</ul>
+</li>
+<li>
+<h3>Lectures</h3>
+<ul>
+<li class=' lecture'><a href='./lectures/'><span class="entry-number"></span> Lecture slides</a></li>
+</ul>
+</li>
+<li>
+<h3>Tutorial</h3>
+<ul>
+<li class=' lecture'><a href='./notebooks/00_julia_pluto_primer/'><span class="entry-number"></span> Julia + Pluto primer</a></li><li class=' lecture'><a href='./notebooks/01_quickstart/'><span class="entry-number"></span> Hello, BeforeIT</a></li><li class=' lecture'><a href='./notebooks/02_model_anatomy/'><span class="entry-number"></span> Anatomy of the model</a></li><li class=' lecture'><a href='./notebooks/03_calibration_and_data/'><span class="entry-number"></span> Calibration and data</a></li><li class=' lecture'><a href='./notebooks/04_shocks_and_cascades/'><span class="entry-number"></span> Shocks and bankruptcy cascades</a></li><li class=' lecture'><a href='./notebooks/05_expectations_and_policy/'><span class="entry-number"></span> Expectations, policy and fiscal closure</a></li><li class=' lecture'><a href='./notebooks/06_forecasting/'><span class="entry-number"></span> Forecasting and validation</a></li><li class=' lecture'><a href='./notebooks/07_extensions_canvas/'><span class="entry-number"></span> Extending the model: CANVAS</a></li><li class=' lecture'><a href='./notebooks/08_snpe_calibration/'><span class="entry-number"></span> Likelihood-free calibration: ABC, NPE, SNRE</a></li><li class=' lecture'><a href='./notebooks/cheatsheet/'><span class="entry-number"></span> BeforeIT cheatsheet</a></li>
+</ul>
+</li>
+
+                <li><hr></li>
+            <li class="sidebar-about">
+                <div class="semester-details">
+    <a href="./semesters/">Amsterdam School of Economics</a>
+</div>
+<div class="logos">
+    <picture title='University of Amsterdam'>
+        <source srcset="./assets/uva_logo.svg" media="(prefers-color-scheme: dark)" />
+        <img src="./assets/uva_logo.svg">
+    </picture>
+</div>
+
+            </li>
+        </ul>
+        </div>
+        </nav>
+        <div id="pages-content">
+           
+        <div class="pages-markdown">
+<main>
+<h1 id="behavioural-macro-and-finance"><a href="#behavioural-macro-and-finance" class="anchor"></a>Behavioural Macro and Finance</h1>
+<p>Agent-based models of the macroeconomy, taught with
+<a href="https://github.com/bancaditalia/BeforeIT.jl">BeforeIT.jl</a> — the Julia implementation of
+the Poledna et al. macro ABM, calibrated on Austrian and Italian national accounts.</p>
+<p>The course is two lectures and a nine-notebook tutorial. The lectures set up the theory;
+the notebooks build the model from a standing start, one mechanism at a time, and end
+with likelihood-free calibration of a model extension.</p>
+<h2 id="start-here"><a href="#start-here" class="anchor"></a>Start here</h2>
+<ul>
+<li><strong><a href="/lectures/">Lecture slides</a></strong> — both decks as PDF.</li>
+<li><strong><a href="/installation/">Running the notebooks</a></strong> — install Julia and Pluto, or just read online.</li>
+<li><strong>Tutorial</strong> — nine notebooks in the sidebar, in order.</li>
+</ul>
+<h2 id="what-the-tutorial-covers"><a href="#what-the-tutorial-covers" class="anchor"></a>What the tutorial covers</h2>
+<p>Notebook 00 is a Julia and Pluto primer; skip it if you already write Julia. From 01 you
+run the Austrian economy forward and read off GDP. By 02 you are inspecting the agents and
+checking that the stock-flow accounting closes. 03 covers calibration and the model’s
+unusual no-burn-in property. 04 fires shocks and watches bankruptcy cascades propagate
+through the input–output network. 05 swaps out expectation formation and the Taylor rule.
+06 builds fan charts and benchmarks against an AR(1). 07 extends the model with a CANVAS
+wage–price spiral, and 08 calibrates that extension with ABC, NPE and SNRE.</p>
+<p>Every notebook names the Lecture 2 slides it covers, and ends with exercises.</p>
+<blockquote>
+<p><strong>Acknowledgement</strong> <br />
+The design of this website is based on <em><strong>Computational Thinking</strong>, a live online Julia/Pluto textbook.</em> <a href="https://computationalthinking.mit.edu">(computationalthinking.mit.edu)</a></p>
+</blockquote>
+</main>
+</div>
+
+        </div>
+    </div>
+</body>
+</html>

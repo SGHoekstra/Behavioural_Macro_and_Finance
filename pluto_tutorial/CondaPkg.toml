@@ -1,4 +1,12 @@
 channels = ["conda-forge"]
 
+# Pin Python away from 3.14. Left unpinned the resolver picks the newest
+# interpreter, and on linux-64 conda-forge's 3.14 ships a pyexpat linked
+# against a libexpat without XML_SetHashSalt16Bytes, so `import torch` dies
+# with an ImportError. It happened to work on macOS, so CI was the first place
+# it showed. sbi and torch are also far better tested on 3.11/3.12.
+[deps]
+python = ">=3.11,<3.13"
+
 [pip.deps]
 sbi = ">=0.26"

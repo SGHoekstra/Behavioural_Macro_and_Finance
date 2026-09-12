@@ -22,8 +22,14 @@ function main()
         blob = read(joinpath(SITE, first(match)))
         hasbytes(needle) = findfirst(Vector{UInt8}(needle), blob) !== nothing
         has_img = hasbytes("image/png") || hasbytes("image/svg+xml")
-        has_err = hasbytes("not found in current path")
-        has_err && push!(bad, "$nb: package environment not found — cell 1 failed")
+        # Any errored cell, not just the missing-environment case. A notebook can
+        # render plots from its Julia half while a later cell dies — notebook 05
+        # shipped a live PythonCall ImportError past an images-only check.
+        errmarks = ["not found in current path", "ImportError", "UndefVarError",
+                    "MethodError", "ArgumentError", "Error message from"]
+        hit = findfirst(m -> hasbytes(m), errmarks)
+        has_err = hit !== nothing
+        has_err && push!(bad, "$nb: a cell errored — found \"$(errmarks[hit])\" in the output")
         if !has_img && !has_err
             # Surface whatever the notebook actually said, so a CI failure is
             # self-explaining instead of just "no images".

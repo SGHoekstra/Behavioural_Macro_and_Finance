@@ -1,0 +1,87 @@
+name: Build and deploy course site
+
+# Deploys to gh-pages. The `output` branch holds the archived Fall23 site
+# built from archive-2024 and must not be touched.
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'plans/**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-site
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    # A cold build executes every notebook, including 08's conda/sbi setup.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+
+      # Pluto's notebook state cache: keyed on the tutorial Manifest, so the
+      # expensive BeforeIT runs are reused until dependencies change.
+      - name: Cache notebook states
+        uses: actions/cache@v4
+        with:
+          path: PlutoPages/_cache
+          key: ${{ runner.os }}-pluto-state-v1-${{ hashFiles('pluto_tutorial/Manifest.toml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-pluto-state-v1-${{ hashFiles('pluto_tutorial/Manifest.toml') }}
+            ${{ runner.os }}-pluto-state-v1-
+
+      - name: Cache Julia depot
+        uses: actions/cache@v4
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-julia-v1-${{ hashFiles('**/Manifest.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-julia-v1-
+
+      - name: Sync course material into content/
+        run: julia PlutoPages/sync_content.jl
+
+      - name: Generate site
+        run: |
+          julia --project=PlutoPages/pluto-deployment-environment -e '
+            import Pkg; Pkg.instantiate();
+            include("./PlutoPages/generate.jl")'
+
+      # generate.jl only inspects its own cells, so a content notebook whose
+      # first cell throws still exits 0 and ships a site of empty shells.
+      - name: Verify notebooks actually rendered
+        run: julia PlutoPages/check_build.jl
+
+      - name: Upload generation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generation-report
+          path: generation_report.html
+
+      # The 2024 course site lives on the output branch, which was the previous
+      # Pages source. Copy it into the build so it stays reachable at /Fall23/
+      # once Pages points here. The output branch itself is never written to.
+      - name: Preserve the archived Fall23 site
+        run: |
+          git fetch --depth=1 origin output
+          git archive origin/output Fall23 | tar -x -C PlutoPages/_site
+          test -f PlutoPages/_site/Fall23/index.html
+
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: PlutoPages/_site

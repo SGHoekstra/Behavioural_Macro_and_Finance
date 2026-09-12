@@ -15,3 +15,7 @@ content/assets/lectures/
 PlutoPages/_site/
 PlutoPages/_cache/
 generation_report.html
+
+# TensorBoard logs written by sbi when notebook 08 trains; the filenames
+# embed the machine's hostname.
+sbi-logs/

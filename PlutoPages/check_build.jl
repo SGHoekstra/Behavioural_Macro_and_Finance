@@ -29,7 +29,15 @@ function main()
                     "MethodError", "ArgumentError", "Error message from"]
         hit = findfirst(m -> hasbytes(m), errmarks)
         has_err = hit !== nothing
-        has_err && push!(bad, "$nb: a cell errored — found \"$(errmarks[hit])\" in the output")
+        if has_err
+            # Quote the surrounding text: the statefile is the only place the
+            # real message exists, and it is not uploaded anywhere.
+            mark = Vector{UInt8}(errmarks[hit])
+            at = findfirst(mark, blob)
+            ctx = String(copy(blob[max(1, first(at) - 40):min(length(blob), last(at) + 220)]))
+            ctx = replace(ctx, r"[^\x20-\x7e]+" => " ")
+            push!(bad, "$nb: a cell errored — $(strip(ctx))")
+        end
         if !has_img && !has_err
             # Surface whatever the notebook actually said, so a CI failure is
             # self-explaining instead of just "no images".

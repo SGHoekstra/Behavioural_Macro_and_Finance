@@ -17,10 +17,6 @@ const NOTEBOOKS = [
     ("cheatsheet.jl",                      "BeforeIT cheatsheet",                         7),
 ]
 
-# Plain .jl files the notebooks `include` — copied verbatim, no frontmatter, and
-# never rendered as pages (PlutoPages only renders files it can parse as
-# notebooks, and this is not one).
-const SUPPORT_FILES = ["canvas_model.jl"]
 
 # The site serves the HANDOUT builds, not the presentation PDFs. Beamer emits
 # one page per overlay step, so lecture 1's 27 frames become 91 pages of
@@ -42,6 +38,12 @@ const LECTURES = [
 # the environment files here instead would make CondaPkg build the whole Python
 # environment inside content/, which PlutoPages then tries to render as site
 # pages — numpy's LICENSE.md files and all.
+# canvas_model.jl deliberately stays in pluto_tutorial/ and is NOT copied into
+# content/: PlutoPages renders every .jl under content/ as a page, and a plain
+# include file becomes a bare source page that lands in the search index.
+const INCLUDE_FROM = "include(joinpath(@__DIR__, \"canvas_model.jl\"))"
+const INCLUDE_TO   = "include(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"canvas_model.jl\"))"
+
 const ACTIVATE_FROM = "Pkg.activate(dirname(@__FILE__))"
 # io=devnull keeps Pkg's "Activating project at /abs/path" banner out of the
 # published page. On a runner that path is /home/runner/work/..., which is
@@ -69,14 +71,11 @@ function main()
     for (file, title, order) in NOTEBOOKS
         src = joinpath(ROOT, "pluto_tutorial", file)
         isfile(src) || error("missing notebook: $src")
-        body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO)
+        body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO, INCLUDE_FROM => INCLUDE_TO)
         @assert occursin("pluto_tutorial", body) "activate rewrite failed for $file"
         write(joinpath(nbdir, file), with_frontmatter(body, title, order))
     end
-    for file in SUPPORT_FILES
-        cp(joinpath(ROOT, "pluto_tutorial", file), joinpath(nbdir, file); force = true)
-    end
-    println("synced $(length(NOTEBOOKS)) notebooks and $(length(SUPPORT_FILES)) support files -> content/notebooks/")
+    println("synced $(length(NOTEBOOKS)) notebooks -> content/notebooks/")
 
     pdfdir = mkpath(joinpath(ROOT, "content", "assets", "lectures"))
     for (src, dest) in LECTURES

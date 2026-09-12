@@ -5,9 +5,9 @@
 # A notebook that really ran embeds rendered output in its .plutostate.
 
 const SITE = joinpath(@__DIR__, "_site", "generated_assets")
-const EXPECT_PLOTS = ["01_quickstart", "02_model_anatomy", "03_calibration_and_data",
-                      "04_shocks_and_cascades", "05_expectations_and_policy",
-                      "06_forecasting", "07_extensions_canvas", "08_snpe_calibration"]
+const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
+                      "03_shocks_expectations_policy", "04_extensions_canvas",
+                      "05_likelihood_free_calibration"]
 
 function main()
     isdir(SITE) || error("no generated_assets at $SITE — did the build run?")

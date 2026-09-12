@@ -8,17 +8,19 @@
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 
 const NOTEBOOKS = [
-    ("00_julia_pluto_primer.jl",    "Julia + Pluto primer",                        1),
-    ("01_quickstart.jl",            "Hello, BeforeIT",                             2),
-    ("02_model_anatomy.jl",         "Anatomy of the model",                        3),
-    ("03_calibration_and_data.jl",  "Calibration and data",                        4),
-    ("04_shocks_and_cascades.jl",   "Shocks and bankruptcy cascades",              5),
-    ("05_expectations_and_policy.jl","Expectations, policy and fiscal closure",    6),
-    ("06_forecasting.jl",           "Forecasting and validation",                  7),
-    ("07_extensions_canvas.jl",     "Extending the model: CANVAS",                 8),
-    ("08_snpe_calibration.jl",      "Likelihood-free calibration: ABC, NPE, SNRE", 9),
-    ("cheatsheet.jl",               "BeforeIT cheatsheet",                        10),
+    ("00_julia_pluto_primer.jl",           "Julia + Pluto primer",                        1),
+    ("01_meet_the_model.jl",               "Meet the model",                              2),
+    ("02_calibration_and_forecasting.jl",  "Calibration, no-burn-in and forecasting",     3),
+    ("03_shocks_expectations_policy.jl",   "Shocks, expectations and policy",             4),
+    ("04_extensions_canvas.jl",            "Extending the model: CANVAS",                 5),
+    ("05_likelihood_free_calibration.jl",  "Likelihood-free calibration: ABC, NPE, SNRE", 6),
+    ("cheatsheet.jl",                      "BeforeIT cheatsheet",                         7),
 ]
+
+# Plain .jl files the notebooks `include` — copied verbatim, no frontmatter, and
+# never rendered as pages (PlutoPages only renders files it can parse as
+# notebooks, and this is not one).
+const SUPPORT_FILES = ["canvas_model.jl"]
 
 # The site serves the HANDOUT builds, not the presentation PDFs. Beamer emits
 # one page per overlay step, so lecture 1's 27 frames become 91 pages of
@@ -57,7 +59,12 @@ function with_frontmatter(src::String, title::String, order::Int)
 end
 
 function main()
-    nbdir = mkpath(joinpath(ROOT, "content", "notebooks"))
+    # Wipe and recreate: this directory is generated. Without the wipe, a
+    # notebook removed from NOTEBOOKS lingers here from an earlier sync and
+    # still gets rendered into the site.
+    nbdir = joinpath(ROOT, "content", "notebooks")
+    isdir(nbdir) && rm(nbdir; recursive = true)
+    mkpath(nbdir)
 
     for (file, title, order) in NOTEBOOKS
         src = joinpath(ROOT, "pluto_tutorial", file)
@@ -66,7 +73,10 @@ function main()
         @assert occursin("pluto_tutorial", body) "activate rewrite failed for $file"
         write(joinpath(nbdir, file), with_frontmatter(body, title, order))
     end
-    println("synced $(length(NOTEBOOKS)) notebooks -> content/notebooks/")
+    for file in SUPPORT_FILES
+        cp(joinpath(ROOT, "pluto_tutorial", file), joinpath(nbdir, file); force = true)
+    end
+    println("synced $(length(NOTEBOOKS)) notebooks and $(length(SUPPORT_FILES)) support files -> content/notebooks/")
 
     pdfdir = mkpath(joinpath(ROOT, "content", "assets", "lectures"))
     for (src, dest) in LECTURES

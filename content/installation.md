@@ -17,8 +17,8 @@ model you need Julia.
 The committed `Manifest.toml` was resolved on 1.12.1; on an older Julia, delete it and
 let `Pkg.instantiate()` re-resolve, which loses exact version pinning.
 
-Notebook 08 additionally pulls a Python environment (`sbi`) through PythonCall/CondaPkg
-on first run — a few hundred megabytes. Notebooks 00–07 are pure Julia.
+Notebook 05 additionally pulls a Python environment (`sbi`) through PythonCall/CondaPkg
+on first run — a few hundred megabytes. Notebooks 00–04 are pure Julia.
 
 ## Setup
 
@@ -41,6 +41,9 @@ environment itself, so there is nothing to precompile per notebook.
 
 ## Order
 
-Work through 00 to 08 in sequence — each assumes the previous ones. `cheatsheet.jl` is a
-standalone reference; keep it open in a second tab. Exercises are at the bottom of each
-notebook.
+Work through 01 to 05 in sequence — each assumes the previous ones. 00 is an optional Julia
+and Pluto primer, and `cheatsheet.jl` is a standalone reference to keep open in a second
+tab. Exercises are at the bottom of each notebook.
+
+Notebook 05 is the heavy one: it pulls the Python `sbi` environment and takes roughly
+20 minutes to run through. Notebooks 01–04 are pure Julia.

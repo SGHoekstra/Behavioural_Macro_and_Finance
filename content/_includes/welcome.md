@@ -8,25 +8,37 @@ Agent-based models of the macroeconomy, taught with
 [BeforeIT.jl](https://github.com/bancaditalia/BeforeIT.jl) — the Julia implementation of
 the Poledna et al. macro ABM, calibrated on Austrian and Italian national accounts.
 
-The course is two lectures and a nine-notebook tutorial. The lectures set up the theory;
-the notebooks build the model from a standing start, one mechanism at a time, and end
-with likelihood-free calibration of a model extension.
+The course is two lectures and a five-part tutorial. The lectures set up the theory; the
+notebooks build the model from a standing start, one mechanism at a time, and end with
+likelihood-free calibration of a model extension.
 
 ## Start here
 
 - **[Lecture slides](lectures/)** — both decks as PDF.
 - **[Running the notebooks](installation/)** — install Julia and Pluto, or just read online.
-- **Tutorial** — nine notebooks in the sidebar, in order.
+- **Tutorial** — five notebooks in the sidebar, in order, plus an optional Julia primer.
 
 ## What the tutorial covers
 
-Notebook 00 is a Julia and Pluto primer; skip it if you already write Julia. From 01 you
-run the Austrian economy forward and read off GDP. By 02 you are inspecting the agents and
-checking that the stock-flow accounting closes. 03 covers calibration and the model's
-unusual no-burn-in property. 04 fires shocks and watches bankruptcy cascades propagate
-through the input–output network. 05 swaps out expectation formation and the Taylor rule.
-06 builds fan charts and benchmarks against an AR(1). 07 extends the model with a CANVAS
-wage–price spiral, and 08 calibrates that extension with ABC, NPE and SNRE.
+**00 — Julia + Pluto primer.** Optional; skip it if you already write Julia.
+
+**01 — Meet the model.** Run the Austrian economy forward and read off GDP, then open the
+box: the agent types and their counts, the input–output network, what happens inside a
+quarter, and whether the stock-flow accounting closes.
+
+**02 — Calibration, no-burn-in and forecasting.** Where the parameters come from, the
+model's unusual ability to run from t=0 without a spin-up, and what that buys you — fan
+charts, and a benchmark against an AR(1).
+
+**03 — Shocks, expectations and policy.** The five exogenous AR(1) processes, bankruptcy
+cascades propagating through the production network, and how expectation formation and the
+Taylor rule change the response.
+
+**04 — Extending the model: CANVAS.** Add a wage–price spiral by overriding a single
+function, and trace the pass-through channels.
+
+**05 — Likelihood-free calibration.** Recover that extension's parameters from data with
+ABC, NPE and SNRE. This one needs a Python environment and takes a while.
 
 Every notebook names the Lecture 2 slides it covers, and ends with exercises.
 

@@ -115,7 +115,7 @@ window.pluto_recording_audio_url = undefined;
 <li>
 <h3>Tutorial</h3>
 <ul>
-<li class=' lecture'><a href='./notebooks/00_julia_pluto_primer/'><span class="entry-number"></span> Julia + Pluto primer</a></li><li class=' lecture'><a href='./notebooks/01_quickstart/'><span class="entry-number"></span> Hello, BeforeIT</a></li><li class=' lecture'><a href='./notebooks/02_model_anatomy/'><span class="entry-number"></span> Anatomy of the model</a></li><li class=' lecture'><a href='./notebooks/03_calibration_and_data/'><span class="entry-number"></span> Calibration and data</a></li><li class=' lecture'><a href='./notebooks/04_shocks_and_cascades/'><span class="entry-number"></span> Shocks and bankruptcy cascades</a></li><li class=' lecture'><a href='./notebooks/05_expectations_and_policy/'><span class="entry-number"></span> Expectations, policy and fiscal closure</a></li><li class=' lecture'><a href='./notebooks/06_forecasting/'><span class="entry-number"></span> Forecasting and validation</a></li><li class=' lecture'><a href='./notebooks/07_extensions_canvas/'><span class="entry-number"></span> Extending the model: CANVAS</a></li><li class=' lecture'><a href='./notebooks/08_snpe_calibration/'><span class="entry-number"></span> Likelihood-free calibration: ABC, NPE, SNRE</a></li><li class=' lecture'><a href='./notebooks/cheatsheet/'><span class="entry-number"></span> BeforeIT cheatsheet</a></li>
+<li class=' lecture'><a href='./notebooks/00_julia_pluto_primer/'><span class="entry-number"></span> Julia + Pluto primer</a></li><li class=' lecture'><a href='./notebooks/01_meet_the_model/'><span class="entry-number"></span> Meet the model</a></li><li class=' lecture'><a href='./notebooks/02_calibration_and_forecasting/'><span class="entry-number"></span> Calibration, no-burn-in and forecasting</a></li><li class=' lecture'><a href='./notebooks/03_shocks_expectations_policy/'><span class="entry-number"></span> Shocks, expectations and policy</a></li><li class=' lecture'><a href='./notebooks/04_extensions_canvas/'><span class="entry-number"></span> Extending the model: CANVAS</a></li><li class=' lecture'><a href='./notebooks/05_likelihood_free_calibration/'><span class="entry-number"></span> Likelihood-free calibration: ABC, NPE, SNRE</a></li><li class=' lecture'><a href='./notebooks/cheatsheet/'><span class="entry-number"></span> BeforeIT cheatsheet</a></li>
 </ul>
 </li>
 
@@ -142,23 +142,30 @@ window.pluto_recording_audio_url = undefined;
 <p>Agent-based models of the macroeconomy, taught with
 <a href="https://github.com/bancaditalia/BeforeIT.jl">BeforeIT.jl</a> — the Julia implementation of
 the Poledna et al. macro ABM, calibrated on Austrian and Italian national accounts.</p>
-<p>The course is two lectures and a nine-notebook tutorial. The lectures set up the theory;
-the notebooks build the model from a standing start, one mechanism at a time, and end
-with likelihood-free calibration of a model extension.</p>
+<p>The course is two lectures and a five-part tutorial. The lectures set up the theory; the
+notebooks build the model from a standing start, one mechanism at a time, and end with
+likelihood-free calibration of a model extension.</p>
 <h2 id="start-here"><a href="#start-here" class="anchor"></a>Start here</h2>
 <ul>
 <li><strong><a href="lectures/">Lecture slides</a></strong> — both decks as PDF.</li>
 <li><strong><a href="installation/">Running the notebooks</a></strong> — install Julia and Pluto, or just read online.</li>
-<li><strong>Tutorial</strong> — nine notebooks in the sidebar, in order.</li>
+<li><strong>Tutorial</strong> — five notebooks in the sidebar, in order, plus an optional Julia primer.</li>
 </ul>
 <h2 id="what-the-tutorial-covers"><a href="#what-the-tutorial-covers" class="anchor"></a>What the tutorial covers</h2>
-<p>Notebook 00 is a Julia and Pluto primer; skip it if you already write Julia. From 01 you
-run the Austrian economy forward and read off GDP. By 02 you are inspecting the agents and
-checking that the stock-flow accounting closes. 03 covers calibration and the model’s
-unusual no-burn-in property. 04 fires shocks and watches bankruptcy cascades propagate
-through the input–output network. 05 swaps out expectation formation and the Taylor rule.
-06 builds fan charts and benchmarks against an AR(1). 07 extends the model with a CANVAS
-wage–price spiral, and 08 calibrates that extension with ABC, NPE and SNRE.</p>
+<p><strong>00 — Julia + Pluto primer.</strong> Optional; skip it if you already write Julia.</p>
+<p><strong>01 — Meet the model.</strong> Run the Austrian economy forward and read off GDP, then open the
+box: the agent types and their counts, the input–output network, what happens inside a
+quarter, and whether the stock-flow accounting closes.</p>
+<p><strong>02 — Calibration, no-burn-in and forecasting.</strong> Where the parameters come from, the
+model’s unusual ability to run from t=0 without a spin-up, and what that buys you — fan
+charts, and a benchmark against an AR(1).</p>
+<p><strong>03 — Shocks, expectations and policy.</strong> The five exogenous AR(1) processes, bankruptcy
+cascades propagating through the production network, and how expectation formation and the
+Taylor rule change the response.</p>
+<p><strong>04 — Extending the model: CANVAS.</strong> Add a wage–price spiral by overriding a single
+function, and trace the pass-through channels.</p>
+<p><strong>05 — Likelihood-free calibration.</strong> Recover that extension’s parameters from data with
+ABC, NPE and SNRE. This one needs a Python environment and takes a while.</p>
 <p>Every notebook names the Lecture 2 slides it covers, and ends with exercises.</p>
 <blockquote>
 <p><strong>Acknowledgement</strong> <br />

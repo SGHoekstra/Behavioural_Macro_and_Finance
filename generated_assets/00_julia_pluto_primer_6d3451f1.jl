@@ -41,7 +41,7 @@ If you are already comfortable with Julia, skip to **Notebook 01**.
 1. Variables, types, and functions
 2. Arrays and broadcasting
 3. Structs and `fieldnames` — needed to inspect the BeforeIT model
-4. Multiple dispatch in one slide — needed for model extensions (Notebook 07)
+4. Multiple dispatch in one slide — needed for model extensions (Notebook 04)
 5. Pluto specifics: reactive cells, `begin…end`, `@bind`
 6. A mini exercise to check understanding
 """
@@ -185,7 +185,7 @@ set_price!(copy(prices), PriceSticky())   # uses sticky method → +0.5%
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000013
 md"""
-In Notebook 07 you will override BeforeIT's pricing function with your own method — the same mechanism at a larger scale.
+In Notebook 04 you will override BeforeIT's pricing function with your own method — the same mechanism at a larger scale.
 """
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000014

@@ -3,7 +3,7 @@
 
 #> [frontmatter]
 #> title = "BeforeIT cheatsheet"
-#> order = 10
+#> order = 7
 #> layout = "layout.jlhtml"
 #> tags = ["tutorial"]
 

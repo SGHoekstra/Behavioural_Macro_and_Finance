@@ -2,8 +2,8 @@
 # v0.20.24
 
 #> [frontmatter]
+#> order = 6
 #> title = "Likelihood-free calibration: ABC, NPE, SNRE"
-#> order = 9
 #> layout = "layout.jlhtml"
 #> tags = ["tutorial"]
 
@@ -22,18 +22,9 @@ macro bind(def, element)
     #! format: on
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000001
-begin
-    import Pkg
-    Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
-    import BeforeIT as Bit
-    using Plots, PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
-    using PythonCall
-end
-
-# ╔═╡ 08000000-0000-0000-0000-000000000002
+# ╔═╡ fe46785c-aeb2-11f1-b29c-f9f57fb156bb
 md"""
-# Notebook 08 — Calibrating Free Parameters with Simulation-Based Inference *(Advanced)*
+# Notebook 05 — Likelihood-free calibration with simulation-based inference *(advanced)*
 
 > **Question this notebook answers:** the CANVAS pass-through coefficients $\phi^{DP}, \phi^{CP}, \phi^{AE}$ are free parameters. How do we calibrate them without a tractable likelihood?
 
@@ -51,7 +42,16 @@ md"""
 5. Run SNPE-C and SNRE-B end-to-end using the Python `sbi` package via `PythonCall`.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000003
+# ╔═╡ fe47a376-aeb2-11f1-b61a-afb43896f469
+begin
+    import Pkg
+    Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
+    import BeforeIT as Bit
+    using Plots, PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
+    using PythonCall
+end
+
+# ╔═╡ fe47a3e4-aeb2-11f1-8672-87cfc7b65656
 md"""
 ---
 ## 1 — The likelihood problem
@@ -70,12 +70,12 @@ Standard methods fail:
 What works: **likelihood-free** methods that only need a simulator.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000004
+# ╔═╡ fe47a3f8-aeb2-11f1-bb78-fdae608fd8dd
 md"""
 ---
 ## 2 — Define the target parameters and observed data
 
-We calibrate the three CANVAS pass-through coefficients from Notebook 07:
+We calibrate the three CANVAS pass-through coefficients from Notebook 04:
 
 $$\theta = (\phi^{DP},\, \phi^{CP},\, \phi^{AE}) \in [0, 1]^3$$
 
@@ -90,7 +90,7 @@ We use two observable series over $T$ quarters:
 giving a $2T$-dimensional summary statistic. In a real application $x_{\text{obs}}$ would come from empirical data; here we use a synthetic simulation at known $\theta_{\text{true}}$ as the target.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000005
+# ╔═╡ fe47a416-aeb2-11f1-9746-851acfeb8207
 begin
     # Scale=0.0001 gives 481 firms across 62 sectors — small enough for SBI budgets.
     # Finite-size noise is handled by MC averaging:
@@ -121,7 +121,7 @@ begin
     """Setup complete — $(round(Int, sum(parameters["I_s"]))) firms across $(length(parameters["I_s"])) sectors, H_act=$(round(Int, parameters["H_act"])). True θ = $(θ_true)"""
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000006
+# ╔═╡ fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6
 md"""
 ---
 ## 3 — The simulator function $\theta \mapsto x$
@@ -130,59 +130,23 @@ The simulator runs the CANVAS model at given $\theta$ for $T$ quarters and retur
 Each training simulation uses $N$ Monte Carlo paths; averaging reduces noise while keeping runtime tractable.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000007
+# ╔═╡ fe47a436-aeb2-11f1-9b2a-3f8bba375ef7
 begin
-    # Reuse CANVASModel and pricing override from Notebook 07
-    # (copy-pasted here so notebook is self-contained)
-    Bit.@object mutable struct SBIModel(Bit.Model) <: Bit.AbstractModel end
-    SBI_phi = Ref((dp=1.0, cp=1.0, ae=1.0))
-
-    function Bit.firms_expectations_and_decisions(model::SBIModel)
-        firms   = model.firms; P_bar_g = model.agg.P_bar_g
-        gamma_e = model.agg.gamma_e; pi_e = model.agg.pi_e
-        ϕ = SBI_phi[]
-        I = length(firms.G_i)
-        gamma_d_i = zeros(I); pi_d_i = zeros(I)
-        for i in 1:I
-            es = firms.Q_s_i[i] > firms.Q_d_i[i]
-            hp = firms.P_i[i] >= P_bar_g[firms.G_i[i]]
-            if !es && !hp; pi_d_i[i] = firms.Q_d_i[i]/firms.Q_s_i[i]-1
-            elseif !es &&  hp; gamma_d_i[i] = firms.Q_d_i[i]/firms.Q_s_i[i]-1
-            elseif  es && !hp; gamma_d_i[i] = firms.Q_d_i[i]/firms.Q_s_i[i]-1
-            else pi_d_i[i] = firms.Q_d_i[i]/firms.Q_s_i[i]-1
-            end
-        end
-        Q_s_i  = firms.Q_s_i .* (1 .+ gamma_e) .* (1 .+ gamma_d_i)
-        pi_c_i = Bit.cost_push_inflation(firms, model)
-        new_P_i = firms.P_i .* (1 .+ ϕ.cp .* pi_c_i) .* (1 .+ ϕ.ae * pi_e) .* (1 .+ ϕ.dp .* pi_d_i)
-        I_d_i, DM_d_i, N_d_i = Bit.desired_capital_material_employment(firms, Q_s_i)
-        Pi_e_i = firms.Pi_i .* (1 + pi_e) * (1 + gamma_e)
-        DD_e_i, K_e_i, L_e_i = Bit.expected_deposits_capital_loans(firms, model, Pi_e_i)
-        DL_d_i = max.(0, -DD_e_i .- firms.D_i)
-        return Q_s_i, I_d_i, DM_d_i, N_d_i, Pi_e_i, DL_d_i, K_e_i, L_e_i, new_P_i
-    end
-
-    function build_sbi_model(p, ic)
-        w_act, w_inact = Bit.Workers(p, ic); firms = Bit.Firms(p, ic)
-        bank = Bit.Bank(p, ic); cb = Bit.CentralBank(p, ic)
-        gov = Bit.Government(p, ic); rotw = Bit.RestOfTheWorld(p, ic)
-        agg = Bit.Aggregates(p, ic); prop = Bit.Properties(p, ic); data = Bit.Data()
-        m = SBIModel(w_act, w_inact, firms, bank, cb, gov, rotw, agg, prop, data)
-        m.firms.Q_s_i .= m.firms.Y_i   # initialise supply so demand-pull ratios are well-defined at t=1
-        return m
-    end
-
-    "SBI model type defined ✓"
+    # Same CANVAS model as Notebook 04, loaded from the shared file rather than
+    # restated here. This notebook calibrates the pass-through coefficients that
+    # notebook set by hand.
+    include(joinpath(@__DIR__, "..", "..", "pluto_tutorial", "canvas_model.jl"))
+    "CANVASModel, its pricing override and build_canvas_model loaded ✓"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000008
+# ╔═╡ fe47a43e-aeb2-11f1-8236-cf09de2a48a6
 begin
     # Simulator: plain forward run at θ, returns concatenated [inflation; gdp_growth] (2T values).
     # Following Wiese et al. (2023) — raw trajectories, no hand-crafted statistics.
     function summarise(θ; seed=1, N=N_paths, T=T_sim, p=parameters, ic=init_cond)
-        SBI_phi[] = θ
+        CANVAS_PHI[] = θ
         Random.seed!(seed)
-        ms = Bit.ensemblerun!((build_sbi_model(p, ic) for _ in 1:N), T)
+        ms = Bit.ensemblerun!((build_canvas_model(p, ic) for _ in 1:N), T)
 
         _defl(m) = m.data.nominal_gdp ./ m.data.real_gdp
         inflation = mean([diff(_defl(m))     ./ _defl(m)[1:end-1]      for m in ms])
@@ -194,16 +158,16 @@ begin
     "Simulator function defined ✓"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000009
+# ╔═╡ fe47a448-aeb2-11f1-8128-47d32eec72fc
 md"""
 ---
 ## 4 — Generate observed data at the true θ
 """
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000a
+# ╔═╡ fe47a45c-aeb2-11f1-8796-d9a46d0f705f
 @bind run_xobs PlutoUI.Button("▶ Generate x_obs at true θ (1–2 min)")
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000b
+# ╔═╡ fe47a470-aeb2-11f1-b509-5733fe3f376e
 begin
     run_xobs
     x_obs = summarise(θ_true, seed=42, N=N_obs)
@@ -220,7 +184,7 @@ begin
          plot_title="x_obs at true θ=$(θ_true)")
 end
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000c
+# ╔═╡ fe47a484-aeb2-11f1-ab62-c9fb038b7b75
 md"""
 ---
 ## 5 — Approximate Bayesian Computation (ABC baseline)
@@ -230,10 +194,10 @@ ABC accepts simulations where $\|x_{\text{sim}} - x_{\text{obs}}\| < \epsilon$.
 This is the simplest likelihood-free method — and the least efficient. The acceptance rate drops exponentially as the dimension of $\theta$ grows. For the 3-parameter problem here, we need a large simulation budget.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000d
+# ╔═╡ fe47a48e-aeb2-11f1-ba58-7f92563411e7
 @bind run_abc PlutoUI.Button("▶ Run ABC (100 simulations, ~5 min)")
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000e
+# ╔═╡ fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
 begin
     run_abc
 
@@ -275,7 +239,7 @@ begin
     """
 end
 
-# ╔═╡ 08000000-0000-0000-0000-00000000000f
+# ╔═╡ fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
 begin
     run_abc
     if length(abc_accepted) >= 3
@@ -298,7 +262,7 @@ begin
     end
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000010
+# ╔═╡ fe47a4c8-aeb2-11f1-b2eb-316721706547
 md"""
 ---
 ## 6 — Neural Posterior Estimation (NPE): the key idea
@@ -315,7 +279,7 @@ The network learns a **density** over $\theta$ conditioned on $x$. Once trained 
 **Sequential NPE (SNPE)** iteratively refines by using the current posterior as the next proposal, concentrating simulations near the posterior mode. The Lecture 2 algorithm box shows the importance-reweighted loss that corrects for the shifted proposal.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000011
+# ╔═╡ fe47a4de-aeb2-11f1-a8a6-8dd6f18757b5
 md"""
 ---
 ## 7 — Running SNPE and SNRE with Python `sbi` via PythonCall
@@ -334,7 +298,7 @@ Two algorithms:
 4. Draw posterior samples and plot.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000016
+# ╔═╡ fe47a4e8-aeb2-11f1-a0c6-cf432609d50c
 begin
     _torch     = pyimport("torch")
     _np        = pyimport("numpy")
@@ -344,7 +308,7 @@ begin
     md"Python `sbi` imports ✓  (torch $(pyconvert(String, _torch.__version__)))"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000017
+# ╔═╡ fe47a4f2-aeb2-11f1-b056-f167b82071b2
 md"""
 ---
 ### Step 1 — Generate simulation pairs $\{(\theta_i, x_i)\}$
@@ -356,10 +320,10 @@ The resulting matrices are converted to PyTorch tensors via NumPy's buffer proto
 > Increase `N_sbi` for a tighter posterior; decrease for quick exploration.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000018
+# ╔═╡ fe47a506-aeb2-11f1-a7b7-5308423c8cfe
 @bind run_sbi_sims PlutoUI.Button("▶ Step 1 — Generate simulations (~5–10 min)")
 
-# ╔═╡ 08000000-0000-0000-0000-000000000019
+# ╔═╡ fe47a510-aeb2-11f1-a698-ef70514f417b
 begin
     run_sbi_sims
 
@@ -402,7 +366,7 @@ begin
     md"Generated **$(length(_θ_sbi)) / $(N_sbi)** simulation pairs ✓  ($(_n_failed) skipped due to NaN/error)"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001a
+# ╔═╡ fe47a51a-aeb2-11f1-b61f-b1712369fe7d
 md"""
 ---
 ### Step 2a — SNPE-C (Sequential Neural Posterior Estimation)
@@ -411,10 +375,10 @@ md"""
 After training we call `posterior.sample(n, x=x_obs)` — no MCMC needed, one forward pass.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001b
+# ╔═╡ fe47a52e-aeb2-11f1-850a-c7a03de04063
 @bind run_snpe PlutoUI.Button("▶ Step 2a — Train SNPE and sample (~1–2 min)")
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001c
+# ╔═╡ fe47a538-aeb2-11f1-ac52-bdf95b720ba4
 begin
     run_snpe; run_sbi_sims   # ensure simulations exist
 
@@ -433,7 +397,7 @@ begin
     md"SNPE: **$(size(snpe_samples, 1)) posterior samples** drawn ✓"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001d
+# ╔═╡ fe47a542-aeb2-11f1-86f9-154ba253a889
 begin
     run_snpe; run_sbi_sims
     if @isdefined(snpe_samples) && size(snpe_samples, 1) >= 2
@@ -455,7 +419,7 @@ begin
     end
 end
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001e
+# ╔═╡ fe47a560-aeb2-11f1-9155-67117e02ae01
 md"""
 ---
 ### Step 2b — SNRE-B (Sequential Neural Ratio Estimation)
@@ -469,10 +433,10 @@ Because we only have the unnormalised ratio, sampling requires **MCMC** (here: s
 This makes SNRE slower at sample time but it can be more robust when the summary statistic space is complex.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-00000000001f
+# ╔═╡ fe47a574-aeb2-11f1-b9d3-15da0a71e396
 @bind run_snre PlutoUI.Button("▶ Step 2b — Train SNRE and sample via MCMC (~3–5 min)")
 
-# ╔═╡ 08000000-0000-0000-0000-000000000020
+# ╔═╡ fe47a57e-aeb2-11f1-b49a-35077214ebb5
 begin
     run_snre; run_sbi_sims   # ensure simulations exist
 
@@ -500,7 +464,7 @@ begin
     md"SNRE: **$(size(snre_samples, 1)) posterior samples** via MCMC ✓"
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000021
+# ╔═╡ fe47a588-aeb2-11f1-8e59-3947a4232ada
 begin
     run_snre; run_sbi_sims
     if @isdefined(snre_samples) && size(snre_samples, 1) >= 2
@@ -522,7 +486,7 @@ begin
     end
 end
 
-# ╔═╡ 08000000-0000-0000-0000-000000000014
+# ╔═╡ fe47a59e-aeb2-11f1-80fd-7da834c0a7bf
 md"""
 The NPE/NRE posteriors are **much tighter** than the ABC posterior, concentrated near the true values, using far fewer simulations (500 vs the millions ABC would need for comparable quality).
 
@@ -535,7 +499,7 @@ The NPE/NRE posteriors are **much tighter** than the ABC posterior, concentrated
 The key advantage highlighted in Lecture 2: both NPE and NRE recover the **full posterior** (not just a point estimate), enabling proper uncertainty quantification of the pass-through coefficients.
 """
 
-# ╔═╡ 08000000-0000-0000-0000-000000000015
+# ╔═╡ fe47a5a6-aeb2-11f1-aac1-bbb9e8e11248
 md"""
 ---
 ## ✔ What you learned
@@ -568,34 +532,34 @@ md"""
 """
 
 # ╔═╡ Cell order:
-# ╟─08000000-0000-0000-0000-000000000002
-# ╠═08000000-0000-0000-0000-000000000001
-# ╟─08000000-0000-0000-0000-000000000003
-# ╟─08000000-0000-0000-0000-000000000004
-# ╠═08000000-0000-0000-0000-000000000005
-# ╟─08000000-0000-0000-0000-000000000006
-# ╠═08000000-0000-0000-0000-000000000007
-# ╠═08000000-0000-0000-0000-000000000008
-# ╟─08000000-0000-0000-0000-000000000009
-# ╠═08000000-0000-0000-0000-00000000000a
-# ╠═08000000-0000-0000-0000-00000000000b
-# ╟─08000000-0000-0000-0000-00000000000c
-# ╠═08000000-0000-0000-0000-00000000000d
-# ╠═08000000-0000-0000-0000-00000000000e
-# ╠═08000000-0000-0000-0000-00000000000f
-# ╟─08000000-0000-0000-0000-000000000010
-# ╟─08000000-0000-0000-0000-000000000011
-# ╠═08000000-0000-0000-0000-000000000016
-# ╟─08000000-0000-0000-0000-000000000017
-# ╠═08000000-0000-0000-0000-000000000018
-# ╠═08000000-0000-0000-0000-000000000019
-# ╟─08000000-0000-0000-0000-00000000001a
-# ╠═08000000-0000-0000-0000-00000000001b
-# ╠═08000000-0000-0000-0000-00000000001c
-# ╠═08000000-0000-0000-0000-00000000001d
-# ╟─08000000-0000-0000-0000-00000000001e
-# ╠═08000000-0000-0000-0000-00000000001f
-# ╠═08000000-0000-0000-0000-000000000020
-# ╠═08000000-0000-0000-0000-000000000021
-# ╟─08000000-0000-0000-0000-000000000014
-# ╟─08000000-0000-0000-0000-000000000015
+# ╟─fe46785c-aeb2-11f1-b29c-f9f57fb156bb
+# ╠═fe47a376-aeb2-11f1-b61a-afb43896f469
+# ╟─fe47a3e4-aeb2-11f1-8672-87cfc7b65656
+# ╟─fe47a3f8-aeb2-11f1-bb78-fdae608fd8dd
+# ╠═fe47a416-aeb2-11f1-9746-851acfeb8207
+# ╟─fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6
+# ╠═fe47a436-aeb2-11f1-9b2a-3f8bba375ef7
+# ╠═fe47a43e-aeb2-11f1-8236-cf09de2a48a6
+# ╟─fe47a448-aeb2-11f1-8128-47d32eec72fc
+# ╠═fe47a45c-aeb2-11f1-8796-d9a46d0f705f
+# ╠═fe47a470-aeb2-11f1-b509-5733fe3f376e
+# ╟─fe47a484-aeb2-11f1-ab62-c9fb038b7b75
+# ╠═fe47a48e-aeb2-11f1-ba58-7f92563411e7
+# ╠═fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
+# ╠═fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
+# ╟─fe47a4c8-aeb2-11f1-b2eb-316721706547
+# ╟─fe47a4de-aeb2-11f1-a8a6-8dd6f18757b5
+# ╠═fe47a4e8-aeb2-11f1-a0c6-cf432609d50c
+# ╟─fe47a4f2-aeb2-11f1-b056-f167b82071b2
+# ╠═fe47a506-aeb2-11f1-a7b7-5308423c8cfe
+# ╠═fe47a510-aeb2-11f1-a698-ef70514f417b
+# ╟─fe47a51a-aeb2-11f1-b61f-b1712369fe7d
+# ╠═fe47a52e-aeb2-11f1-850a-c7a03de04063
+# ╠═fe47a538-aeb2-11f1-ac52-bdf95b720ba4
+# ╠═fe47a542-aeb2-11f1-86f9-154ba253a889
+# ╟─fe47a560-aeb2-11f1-9155-67117e02ae01
+# ╠═fe47a574-aeb2-11f1-b9d3-15da0a71e396
+# ╠═fe47a57e-aeb2-11f1-b49a-35077214ebb5
+# ╠═fe47a588-aeb2-11f1-8e59-3947a4232ada
+# ╟─fe47a59e-aeb2-11f1-80fd-7da834c0a7bf
+# ╟─fe47a5a6-aeb2-11f1-aac1-bbb9e8e11248

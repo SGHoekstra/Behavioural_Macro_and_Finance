@@ -2,8 +2,8 @@
 # v0.20.24
 
 #> [frontmatter]
+#> order = 5
 #> title = "Extending the model: CANVAS"
-#> order = 8
 #> layout = "layout.jlhtml"
 #> tags = ["tutorial"]
 
@@ -22,18 +22,9 @@ macro bind(def, element)
     #! format: on
 end
 
-# ╔═╡ 07000000-0000-0000-0000-000000000001
-begin
-    import Pkg
-    Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
-    import BeforeIT as Bit
-    import Random
-    using Plots, PlutoUI, Statistics, StatsPlots
-end
-
-# ╔═╡ 07000000-0000-0000-0000-000000000002
+# ╔═╡ 9222600a-aeb2-11f1-8097-b3e7ed45a1f8
 md"""
-# Notebook 07 — Extending the Model: CANVAS Wage–Price Spiral *(Advanced)*
+# Notebook 04 — Extending the model: CANVAS wage–price spiral *(advanced)*
 
 > **Question this notebook answers:** how does a 10% permanent wage shock propagate into persistent inflation — and does it matter whether firms have full or partial price pass-through?
 
@@ -51,7 +42,16 @@ md"""
 4. Reproduce the qualitative pattern from the Lecture 2 inflation decomposition figures.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000003
+# ╔═╡ 92249eb2-aeb2-11f1-93c6-5f7eb9558b2f
+begin
+    import Pkg
+    Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
+    import BeforeIT as Bit
+    import Random
+    using Plots, PlutoUI, Statistics, StatsPlots
+end
+
+# ╔═╡ 92249fa0-aeb2-11f1-ace8-bd629c2e194b
 md"""
 ---
 ## 1 — BeforeIT's extension architecture
@@ -79,7 +79,7 @@ Bit.step!(model)   # automatically calls your overridden function
 ```
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000004
+# ╔═╡ 92249fd2-aeb2-11f1-9494-cba8284edbc5
 md"""
 ---
 ## 2 — The CANVAS pricing equation
@@ -100,7 +100,7 @@ where $\pi^d_i$ comes from firm-level inventory/price positioning across four sc
 Setting **$\phi^{DP} = \phi^{CP} = \phi^{AE} = 1$** gives full, immediate pass-through. With $\phi < 1$ firms absorb part of the shock — inflation is dampened but more persistent.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000e
+# ╔═╡ 9224a004-aeb2-11f1-8efc-33d761348d38
 md"""
 ### CANVAS implicit assumptions
 
@@ -123,62 +123,21 @@ This is a **bounded-rational approximation** to optimal price-setting. The key *
 Setting $\phi^{DP} = 1$ gives full, immediate demand-pull pass-through. The Lecture 2 "estimated" CANVAS model finds $\phi^{DP} < 1$ because real firms exhibit **price stickiness** — they don't fully exploit their demand-pull margin each period.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000005
+# ╔═╡ 9224a036-aeb2-11f1-8043-d9080676020a
 md"""
 ---
 ## 3 — Implementing the CANVAS extension
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000006
+# ╔═╡ 9224a05e-aeb2-11f1-a81a-57549d5890ea
 begin
-    Bit.@object mutable struct CANVASModel(Bit.Model) <: Bit.AbstractModel end
-
-    # Pass-through coefficients — updated by the sliders below before each run
-    const CANVAS_phi = Ref((dp=1.0, cp=1.0, ae=1.0))
-
-    function Bit.firms_expectations_and_decisions(model::CANVASModel)
-        firms   = model.firms
-        P_bar_g = model.agg.P_bar_g
-        gamma_e = model.agg.gamma_e
-        pi_e    = model.agg.pi_e
-        ϕ       = CANVAS_phi[]
-
-        I = length(firms.G_i)
-        gamma_d_i = zeros(I)
-        pi_d_i    = zeros(I)
-
-        for i in 1:I
-            if firms.Q_s_i[i] <= firms.Q_d_i[i] && firms.P_i[i] >= P_bar_g[firms.G_i[i]]
-                gamma_d_i[i] = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # expand production
-            elseif firms.Q_s_i[i] <= firms.Q_d_i[i] && firms.P_i[i] < P_bar_g[firms.G_i[i]]
-                pi_d_i[i]    = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # raise price
-            elseif firms.Q_s_i[i] > firms.Q_d_i[i] && firms.P_i[i] >= P_bar_g[firms.G_i[i]]
-                pi_d_i[i]    = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # cut price
-            else
-                gamma_d_i[i] = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # cut production
-            end
-        end
-
-        Q_s_i  = firms.Q_s_i .* (1 .+ gamma_e) .* (1 .+ gamma_d_i)
-        pi_c_i = Bit.cost_push_inflation(firms, model)
-
-        new_P_i = firms.P_i .*
-                  (1 .+ ϕ.cp .* pi_c_i) .*
-                  (1 .+ ϕ.ae * pi_e)    .*
-                  (1 .+ ϕ.dp .* pi_d_i)
-
-        I_d_i, DM_d_i, N_d_i = Bit.desired_capital_material_employment(firms, Q_s_i)
-        Pi_e_i                = firms.Pi_i .* (1 + pi_e) * (1 + gamma_e)
-        DD_e_i, K_e_i, L_e_i = Bit.expected_deposits_capital_loans(firms, model, Pi_e_i)
-        DL_d_i                = max.(0, -DD_e_i .- firms.D_i)
-
-        return Q_s_i, I_d_i, DM_d_i, N_d_i, Pi_e_i, DL_d_i, K_e_i, L_e_i, new_P_i
-    end
-
-    "CANVASModel and pricing function defined ✓"
+    # The CANVAS model lives in canvas_model.jl so that this notebook and
+    # Notebook 05 share one definition instead of two copies that can drift.
+    include(joinpath(@__DIR__, "..", "..", "pluto_tutorial", "canvas_model.jl"))
+    "CANVASModel, its pricing override and build_canvas_model loaded ✓"
 end
 
-# ╔═╡ 07000000-0000-0000-0000-000000000007
+# ╔═╡ 9224a086-aeb2-11f1-bbc0-a112bceab37a
 md"""
 ---
 ## 4 — Interactive pass-through experiment
@@ -186,7 +145,7 @@ md"""
 Use the sliders to set pass-through coefficients, then apply a **10% permanent wage shock**. Compare cumulative excess inflation and GDP impact under the Poledna baseline vs CANVAS.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000008
+# ╔═╡ 9224a0b8-aeb2-11f1-9eac-0f290383286a
 md"""
 **Demand-pull pass-through $\phi^{DP}$:** $(@bind phi_dp PlutoUI.Slider(0.0:0.1:1.0, default=1.0, show_value=true))
 
@@ -195,69 +154,58 @@ md"""
 **Aggregate expectations pass-through $\phi^{AE}$:** $(@bind phi_ae PlutoUI.Slider(0.0:0.1:1.0, default=1.0, show_value=true))
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000009
+# ╔═╡ 9224a0d6-aeb2-11f1-9134-bfa1c318d506
 @bind run_canvas PlutoUI.Button("▶ Run CANVAS comparison (16 quarters)")
 
-# ╔═╡ 07000000-0000-0000-0000-000000000012
-# Standalone cell for the Nb07WageShock struct.
+# ╔═╡ 9224a11e-aeb2-11f1-9502-c332731b0d24
+# Standalone cell for the Nb4WageShock struct.
 # Struct types cannot be redefined in Julia; placing this outside the
 # button-triggered cell ensures it compiles exactly once at notebook load.
 begin
-    struct Nb07WageShock; mult::Float64 end
-    function (s::Nb07WageShock)(model)
+    struct Nb4WageShock; mult::Float64 end
+    function (s::Nb4WageShock)(model)
         model.agg.t == 1 && (model.firms.w_i .*= s.mult)
     end
 end
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000a
+# ╔═╡ 9224a144-aeb2-11f1-82e8-f92c34855890
 begin
     run_canvas
 
-    nb07_p  = Bit.AUSTRIA2010Q1.parameters
-    nb07_ic = Bit.AUSTRIA2010Q1.initial_conditions
+    nb4_p  = Bit.AUSTRIA2010Q1.parameters
+    nb4_ic = Bit.AUSTRIA2010Q1.initial_conditions
 
-    wage_shock = Nb07WageShock(1.10)
-
-    Random.seed!(7)
-    ens_poledna_base  = Bit.ensemblerun(Bit.Model(nb07_p, nb07_ic), 16, 10)
-    Random.seed!(7)
-    ens_poledna_shock = Bit.ensemblerun(Bit.Model(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
-
-    CANVAS_phi[] = (dp = phi_dp, cp = phi_cp, ae = phi_ae)
-
-    function build_canvas(p, ic)
-        w_act, w_inact = Bit.Workers(p, ic)
-        firms  = Bit.Firms(p, ic);  bank = Bit.Bank(p, ic)
-        cb     = Bit.CentralBank(p, ic); gov = Bit.Government(p, ic)
-        rotw   = Bit.RestOfTheWorld(p, ic); agg = Bit.Aggregates(p, ic)
-        prop   = Bit.Properties(p, ic);    data = Bit.Data()
-        m = CANVASModel(w_act, w_inact, firms, bank, cb, gov, rotw, agg, prop, data)
-        # Initialise Q_s_i from Y_i so the demand-pull ratios are well-defined at t=1
-        m.firms.Q_s_i .= m.firms.Y_i
-        return m
-    end
+    wage_shock = Nb4WageShock(1.10)
 
     Random.seed!(7)
-    ens_canvas_base  = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10)
+    ens_poledna_base  = Bit.ensemblerun(Bit.Model(nb4_p, nb4_ic), 16, 10)
     Random.seed!(7)
-    ens_canvas_shock = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
+    ens_poledna_shock = Bit.ensemblerun(Bit.Model(nb4_p, nb4_ic), 16, 10; shock! = wage_shock)
+
+    CANVAS_PHI[] = (dp = phi_dp, cp = phi_cp, ae = phi_ae)
+
+
+    Random.seed!(7)
+    ens_canvas_base  = Bit.ensemblerun(build_canvas_model(nb4_p, nb4_ic), 16, 10)
+    Random.seed!(7)
+    ens_canvas_shock = Bit.ensemblerun(build_canvas_model(nb4_p, nb4_ic), 16, 10; shock! = wage_shock)
 
     "CANVAS run complete ✓"
 end
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000b
+# ╔═╡ 9224a162-aeb2-11f1-8958-119a77de5232
 begin
     run_canvas
 
     # Stack one field from all ensemble runs into a T × N_runs matrix
     ens_field(ens, field) = hcat([getfield(m.data, field) for m in ens]...)
-    nb07_defl(ens) = ens_field(ens, :nominal_gdp) ./ ens_field(ens, :real_gdp)
-    nb07_infl(d)   = diff(d, dims=1) ./ selectdim(d, 1, 1:(size(d, 1)-1))
+    nb4_defl(ens) = ens_field(ens, :nominal_gdp) ./ ens_field(ens, :real_gdp)
+    nb4_infl(d)   = diff(d, dims=1) ./ selectdim(d, 1, 1:(size(d, 1)-1))
 
-    infl_poledna_base  = nb07_infl(nb07_defl(ens_poledna_base))
-    infl_poledna_shock = nb07_infl(nb07_defl(ens_poledna_shock))
-    infl_canvas_base   = nb07_infl(nb07_defl(ens_canvas_base))
-    infl_canvas_shock  = nb07_infl(nb07_defl(ens_canvas_shock))
+    infl_poledna_base  = nb4_infl(nb4_defl(ens_poledna_base))
+    infl_poledna_shock = nb4_infl(nb4_defl(ens_poledna_shock))
+    infl_canvas_base   = nb4_infl(nb4_defl(ens_canvas_base))
+    infl_canvas_shock  = nb4_infl(nb4_defl(ens_canvas_shock))
 
     excess_poledna = infl_poledna_shock .- infl_poledna_base
     excess_canvas  = infl_canvas_shock  .- infl_canvas_base
@@ -286,7 +234,7 @@ begin
     plot(p1, p2, layout = (1, 2), size = (800, 380), legend = :topright)
 end
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000f
+# ╔═╡ 9224a17e-aeb2-11f1-b3ec-274348f58db8
 md"""
 ---
 ## 5 — Channel decomposition
@@ -296,20 +244,20 @@ The CANVAS pricing equation has three **multiplicative** channels. We can isolat
 > **Note on multiplicativity:** Because channels multiply rather than add, the three isolated contributions do not sum exactly to the full-pass-through result. The gap is the channel **interaction term** — a second-order effect. This illustrates why pass-through estimates from single-equation regressions may be biased.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-000000000010
+# ╔═╡ 9224a1a8-aeb2-11f1-91ff-97184fcd8a4b
 @bind run_decomp PlutoUI.Button("▶ Run decomposition (3 × 2 isolated runs, ~30 s)")
 
-# ╔═╡ 07000000-0000-0000-0000-000000000011
+# ╔═╡ 9224a1d0-aeb2-11f1-8167-91cd39977eb3
 begin
     run_decomp
 
     function run_isolated_pair(phi_val)
-        CANVAS_phi[] = phi_val
+        CANVAS_PHI[] = phi_val
         Random.seed!(7)
-        ens_b = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10)
+        ens_b = Bit.ensemblerun(build_canvas_model(nb4_p, nb4_ic), 16, 10)
         Random.seed!(7)
-        ens_s = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
-        CANVAS_phi[] = (dp=phi_dp, cp=phi_cp, ae=phi_ae)
+        ens_s = Bit.ensemblerun(build_canvas_model(nb4_p, nb4_ic), 16, 10; shock! = wage_shock)
+        CANVAS_PHI[] = (dp=phi_dp, cp=phi_cp, ae=phi_ae)
         return ens_b, ens_s
     end
 
@@ -318,7 +266,7 @@ begin
     _ens_b_ae, _ens_s_ae = run_isolated_pair((dp=0.0, cp=0.0, ae=1.0))
 
     function _excess_infl(ens_s, ens_b)
-        cumsum(nb07_infl(nb07_defl(ens_s)) .- nb07_infl(nb07_defl(ens_b)), dims=1) .* 100
+        cumsum(nb4_infl(nb4_defl(ens_s)) .- nb4_infl(nb4_defl(ens_b)), dims=1) .* 100
     end
 
     ei_dp_iso = _excess_infl(_ens_s_dp, _ens_b_dp)
@@ -340,15 +288,15 @@ begin
           legend = :topleft, size = (720, 380))
 end
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000c
+# ╔═╡ 9224a1ee-aeb2-11f1-a96c-a5246dec63cb
 md"""
 **Interpretation:**
 - With $\phi = 1$ (full pass-through), the 10% wage shock feeds immediately and fully into prices via all three channels.
 - With $\phi < 1$ (partial pass-through), inflation is dampened but more persistent — firms absorb part of the shock each period and pass it through gradually.
-- The Lecture 2 figures show the **estimated** CANVAS model (via SBI in Notebook 08) typically has $\phi^{CP} < 1$ — firms absorb costs to some degree.
+- The Lecture 2 figures show the **estimated** CANVAS model (via SBI in Notebook 05) typically has $\phi^{CP} < 1$ — firms absorb costs to some degree.
 """
 
-# ╔═╡ 07000000-0000-0000-0000-00000000000d
+# ╔═╡ 9224a216-aeb2-11f1-ba17-6bcbccd1a13c
 md"""
 ---
 ## ✔ What you learned
@@ -368,21 +316,21 @@ md"""
 """
 
 # ╔═╡ Cell order:
-# ╟─07000000-0000-0000-0000-000000000002
-# ╠═07000000-0000-0000-0000-000000000001
-# ╟─07000000-0000-0000-0000-000000000003
-# ╟─07000000-0000-0000-0000-000000000004
-# ╟─07000000-0000-0000-0000-00000000000e
-# ╟─07000000-0000-0000-0000-000000000005
-# ╠═07000000-0000-0000-0000-000000000006
-# ╟─07000000-0000-0000-0000-000000000007
-# ╠═07000000-0000-0000-0000-000000000008
-# ╠═07000000-0000-0000-0000-000000000009
-# ╠═07000000-0000-0000-0000-000000000012
-# ╠═07000000-0000-0000-0000-00000000000a
-# ╠═07000000-0000-0000-0000-00000000000b
-# ╟─07000000-0000-0000-0000-00000000000f
-# ╠═07000000-0000-0000-0000-000000000010
-# ╠═07000000-0000-0000-0000-000000000011
-# ╟─07000000-0000-0000-0000-00000000000c
-# ╠═07000000-0000-0000-0000-00000000000d
+# ╟─9222600a-aeb2-11f1-8097-b3e7ed45a1f8
+# ╠═92249eb2-aeb2-11f1-93c6-5f7eb9558b2f
+# ╟─92249fa0-aeb2-11f1-ace8-bd629c2e194b
+# ╟─92249fd2-aeb2-11f1-9494-cba8284edbc5
+# ╟─9224a004-aeb2-11f1-8efc-33d761348d38
+# ╟─9224a036-aeb2-11f1-8043-d9080676020a
+# ╠═9224a05e-aeb2-11f1-a81a-57549d5890ea
+# ╟─9224a086-aeb2-11f1-bbc0-a112bceab37a
+# ╠═9224a0b8-aeb2-11f1-9eac-0f290383286a
+# ╠═9224a0d6-aeb2-11f1-9134-bfa1c318d506
+# ╠═9224a11e-aeb2-11f1-9502-c332731b0d24
+# ╠═9224a144-aeb2-11f1-82e8-f92c34855890
+# ╠═9224a162-aeb2-11f1-8958-119a77de5232
+# ╟─9224a17e-aeb2-11f1-b3ec-274348f58db8
+# ╠═9224a1a8-aeb2-11f1-91ff-97184fcd8a4b
+# ╠═9224a1d0-aeb2-11f1-8167-91cd39977eb3
+# ╟─9224a1ee-aeb2-11f1-a96c-a5246dec63cb
+# ╠═9224a216-aeb2-11f1-ba17-6bcbccd1a13c

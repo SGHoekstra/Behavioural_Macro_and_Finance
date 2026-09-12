@@ -62,34 +62,30 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
-      # Both import orders fail, so this is not load order: loading Plots at all
-      # pulls Julia's Expat_jll into the global symbol table, and torch's lazily
-      # dlopen'd pyexpat then binds to it instead of conda's. Report the two
-      # libexpat builds and whether each exports the symbol, so the pin can be
-      # chosen from evidence rather than guessed across 40-minute builds.
-      - name: Compare the two libexpat builds
+      # torch's pyexpat and Julia's Expat_jll (via Plots -> GR/Cairo) both want to
+      # own libexpat, and on Linux the global symbol table resolves to whichever
+      # loaded first. Order A (Plots first) and order B (pyimport "sys", then
+      # Plots, then torch) both fail. Order C imports torch FIRST, so pyexpat is
+      # loaded and bound before Plots pulls in Expat_jll. Test it here in three
+      # minutes rather than inside a forty-minute build.
+      - name: Check import order C, then report libexpat
         run: |
           set +e
-          echo "--- Julia Expat_jll ---"
           julia --project=pluto_tutorial -e '
-            using Pkg
-            for (u,d) in Pkg.dependencies()
-              occursin("Expat", d.name) && println(d.name, " v", d.version)
-            end
-            try
-              using Expat_jll
-              println("path: ", Expat_jll.libexpat_path)
-            catch e; println("Expat_jll not directly loadable: ", e); end'
-          echo "--- conda libexpat ---"
+            using PythonCall
+            pyimport("torch"); pyimport("sbi.inference")   # bind pyexpat first
+            using Plots
+            plot(1:3, 1:3)                                  # force GR/Expat_jll to load
+            println("python: ", pyconvert(String, pyimport("sys").version))
+            println("ORDER C OK")'
+          echo "=== order C exit=$? ==="
+          echo "--- libexpat builds now that the env exists ---"
           ls -l pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/libexpat.so* 2>/dev/null
-          echo "--- which exports XML_SetHashSalt16Bytes? ---"
-          for f in $(julia --project=pluto_tutorial -e 'using Expat_jll; print(Expat_jll.libexpat_path)' 2>/dev/null)                    pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/libexpat.so.1 ; do
-            if [ -e "$f" ]; then
-              printf "  %-70s %s\n" "$f" "$(nm -D --defined-only "$f" 2>/dev/null | grep -c XML_SetHashSalt16Bytes)"
-            fi
+          for f in pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/libexpat.so.1                    $(find ~/.julia/artifacts -name 'libexpat.so.1' 2>/dev/null | head -1); do
+            [ -e "$f" ] && printf "  %-64s exports_symbol=%s\n" "$f"               "$(nm -D --defined-only "$f" 2>/dev/null | grep -c XML_SetHashSalt16Bytes)"
           done
-          echo "--- what does pyexpat need? ---"
-          nm -D --undefined-only pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/python3.12/lib-dynload/pyexpat*.so 2>/dev/null | grep XML_ | head -8
+          echo "--- pyexpat undefined XML_ symbols ---"
+          nm -D --undefined-only pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/python3.12/lib-dynload/pyexpat*.so 2>/dev/null | grep XML_ | head -5
           set -e
 
       - name: Sync course material into content/

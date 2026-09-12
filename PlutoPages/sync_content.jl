@@ -25,6 +25,14 @@ const LECTURES = [
     ("lecture_2_sfc_abm/lecture.pdf",  "lecture_2_sfc_abm.pdf"),
 ]
 
+# Each notebook activates its own directory. Under content/notebooks/ that would
+# be an empty project, so repoint it at the real tutorial environment. Copying
+# the environment files here instead would make CondaPkg build the whole Python
+# environment inside content/, which PlutoPages then tries to render as site
+# pages — numpy's LICENSE.md files and all.
+const ACTIVATE_FROM = "Pkg.activate(dirname(@__FILE__))"
+const ACTIVATE_TO   = "Pkg.activate(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\"))"
+
 "Insert PlutoPages frontmatter after the `# v0.20.x` header line, idempotently."
 function with_frontmatter(src::String, title::String, order::Int)
     occursin("#> [frontmatter]", src) && return src
@@ -38,17 +46,12 @@ end
 function main()
     nbdir = mkpath(joinpath(ROOT, "content", "notebooks"))
 
-    # Every notebook calls Pkg.activate(dirname(@__FILE__)). Without the
-    # environment files beside the copies that activates an EMPTY project, cell 1
-    # fails with "Package PlutoUI not found", and the whole notebook silently
-    # renders as an error with no outputs.
-    for env in ("Project.toml", "Manifest.toml", "CondaPkg.toml")
-        cp(joinpath(ROOT, "pluto_tutorial", env), joinpath(nbdir, env); force = true)
-    end
     for (file, title, order) in NOTEBOOKS
         src = joinpath(ROOT, "pluto_tutorial", file)
         isfile(src) || error("missing notebook: $src")
-        write(joinpath(nbdir, file), with_frontmatter(read(src, String), title, order))
+        body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO)
+        @assert occursin("pluto_tutorial", body) "activate rewrite failed for $file"
+        write(joinpath(nbdir, file), with_frontmatter(body, title, order))
     end
     println("synced $(length(NOTEBOOKS)) notebooks -> content/notebooks/")
 

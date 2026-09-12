@@ -26,8 +26,21 @@ function main()
         has_err && push!(bad, "$nb: package environment not found — cell 1 failed")
         (!has_img && !has_err) && push!(bad, "$nb: no rendered image output")
     end
+    # The lecture PDFs are the other half of the course. PlutoPages drops any
+    # extension missing from its passthrough list without warning, so assert.
+    site = joinpath(@__DIR__, "_site")
+    for pdf in ("assets/lectures/lecture_1_intro_abm.pdf",
+                "assets/lectures/lecture_2_sfc_abm.pdf")
+        f = joinpath(site, pdf)
+        if !isfile(f)
+            push!(bad, "$pdf: missing from the built site")
+        elseif filesize(f) < 100_000
+            push!(bad, "$pdf: only $(filesize(f)) bytes — not a real PDF")
+        end
+    end
+
     if isempty(bad)
-        println("check_build: all $(length(EXPECT_PLOTS)) notebooks rendered output ✓")
+        println("check_build: $(length(EXPECT_PLOTS)) notebooks rendered output, both lecture PDFs present ✓")
     else
         println("check_build FAILED:")
         foreach(b -> println("  ", b), bad)

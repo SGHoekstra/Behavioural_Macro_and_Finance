@@ -1,17 +1,19 @@
 ### A Pluto.jl notebook ###
-# v0.19.46
+# v1.0.3
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    #! format: off
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ b8024c95-6a63-4409-9c75-9bad6b301a92
@@ -339,6 +341,17 @@ function template_handler(::Union{
 		Val{Symbol(".png")},
 		Val{Symbol(".svg")},
 		Val{Symbol(".gif")},
+		# Added for this course: lecture slides are PDFs, and the site ships a
+		# .ico favicon. Extensions missing from this list fall through to the
+		# ::Any handler, which returns contents=nothing and drops the file
+		# silently — no warning, no error, just a 404 on the built site.
+		Val{Symbol(".pdf")},
+		Val{Symbol(".ico")},
+		Val{Symbol(".jpg")},
+		Val{Symbol(".jpeg")},
+		Val{Symbol(".webp")},
+		Val{Symbol(".woff")},
+		Val{Symbol(".woff2")},
 	}, input::TemplateInput)::TemplateOutput
 
 	TemplateOutput(;

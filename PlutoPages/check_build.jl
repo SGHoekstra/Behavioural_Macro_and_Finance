@@ -25,6 +25,9 @@ function main()
         has_err = hasbytes("not found in current path")
         has_err && push!(bad, "$nb: package environment not found — cell 1 failed")
         (!has_img && !has_err) && push!(bad, "$nb: no rendered image output")
+        # A build path in the output means Pkg's activate banner leaked into
+        # the published page.
+        hasbytes("Activating") && push!(bad, "$nb: Pkg activate banner leaked into the page")
     end
     # The lecture PDFs are the other half of the course. PlutoPages drops any
     # extension missing from its passthrough list without warning, so assert.

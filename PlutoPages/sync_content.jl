@@ -31,7 +31,10 @@ const LECTURES = [
 # environment inside content/, which PlutoPages then tries to render as site
 # pages — numpy's LICENSE.md files and all.
 const ACTIVATE_FROM = "Pkg.activate(dirname(@__FILE__))"
-const ACTIVATE_TO   = "Pkg.activate(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\"))"
+# io=devnull keeps Pkg's "Activating project at /abs/path" banner out of the
+# published page. On a runner that path is /home/runner/work/..., which is
+# noise at best and confusing to a student at worst.
+const ACTIVATE_TO   = "Pkg.activate(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\"); io=devnull)"
 
 "Insert PlutoPages frontmatter after the `# v0.20.x` header line, idempotently."
 function with_frontmatter(src::String, title::String, order::Int)

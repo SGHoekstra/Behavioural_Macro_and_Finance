@@ -62,39 +62,35 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
-      # Resolve the Python environment here rather than inside a Pluto worker,
-      # where CondaPkg's output is captured into the statefile and invisible.
-      #
-      # This also pins down a load-order conflict: conda ships its own libexpat
-      # and Julia's Expat_jll (pulled in by Plots -> GR/Cairo) ships another. On
-      # Linux the first one loaded wins globally, so whichever stack initialises
-      # first decides whether pyexpat finds its symbols. Test both orders and say
-      # which works, in four minutes rather than a forty-minute build.
-      - name: Resolve and check the Python environment
+      # Both import orders fail, so this is not load order: loading Plots at all
+      # pulls Julia's Expat_jll into the global symbol table, and torch's lazily
+      # dlopen'd pyexpat then binds to it instead of conda's. Report the two
+      # libexpat builds and whether each exports the symbol, so the pin can be
+      # chosen from evidence rather than guessed across 40-minute builds.
+      - name: Compare the two libexpat builds
         run: |
           set +e
-          echo "--- order A: Plots first, then PythonCall (what notebook 05 does) ---"
+          echo "--- Julia Expat_jll ---"
           julia --project=pluto_tutorial -e '
-            using Plots
-            using PythonCall
-            println("python: ", pyconvert(String, pyimport("sys").version))
-            pyimport("torch"); pyimport("sbi.inference")
-            println("ORDER A OK")'
-          A=$?
-          echo "--- order B: PythonCall initialised first, then Plots ---"
-          julia --project=pluto_tutorial -e '
-            using PythonCall
-            pyimport("sys")
-            using Plots
-            println("python: ", pyconvert(String, pyimport("sys").version))
-            pyimport("torch"); pyimport("sbi.inference")
-            println("ORDER B OK")'
-          B=$?
-          echo "=== order A exit=$A   order B exit=$B ==="
+            using Pkg
+            for (u,d) in Pkg.dependencies()
+              occursin("Expat", d.name) && println(d.name, " v", d.version)
+            end
+            try
+              using Expat_jll
+              println("path: ", Expat_jll.libexpat_path)
+            catch e; println("Expat_jll not directly loadable: ", e); end'
+          echo "--- conda libexpat ---"
+          ls -l pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/libexpat.so* 2>/dev/null
+          echo "--- which exports XML_SetHashSalt16Bytes? ---"
+          for f in $(julia --project=pluto_tutorial -e 'using Expat_jll; print(Expat_jll.libexpat_path)' 2>/dev/null)                    pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/libexpat.so.1 ; do
+            if [ -e "$f" ]; then
+              printf "  %-70s %s\n" "$f" "$(nm -D --defined-only "$f" 2>/dev/null | grep -c XML_SetHashSalt16Bytes)"
+            fi
+          done
+          echo "--- what does pyexpat need? ---"
+          nm -D --undefined-only pluto_tutorial/.CondaPkg/.pixi/envs/default/lib/python3.12/lib-dynload/pyexpat*.so 2>/dev/null | grep XML_ | head -8
           set -e
-          if [ "$A" != "0" ] && [ "$B" != "0" ]; then
-            echo "both import orders fail — the conflict is not load-order"; exit 1
-          fi
 
       - name: Sync course material into content/
         run: julia PlutoPages/sync_content.jl

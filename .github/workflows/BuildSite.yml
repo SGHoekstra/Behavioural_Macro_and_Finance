@@ -37,10 +37,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: PlutoPages/_cache
-          key: ${{ runner.os }}-pluto-state-v1-${{ hashFiles('pluto_tutorial/Manifest.toml') }}-${{ github.run_id }}
+          # Keyed on the Python environment as well as the Julia one. PlutoSliderServer
+          # keys each cached state on the NOTEBOOK's content, so fixing a broken
+          # environment does not invalidate a state that failed because of it —
+          # notebook 05 kept serving a cached Python 3.14 ImportError after the
+          # interpreter was pinned. There is deliberately no bare catch-all
+          # restore-key: it matched any previous cache and dragged the bad state back.
+          key: ${{ runner.os }}-pluto-state-v2-${{ hashFiles('pluto_tutorial/Manifest.toml', 'pluto_tutorial/CondaPkg.toml') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-pluto-state-v1-${{ hashFiles('pluto_tutorial/Manifest.toml') }}
-            ${{ runner.os }}-pluto-state-v1-
+            ${{ runner.os }}-pluto-state-v2-${{ hashFiles('pluto_tutorial/Manifest.toml', 'pluto_tutorial/CondaPkg.toml') }}
 
       - name: Cache Julia depot
         uses: actions/cache@v4

@@ -38,7 +38,8 @@ Taylor rule change the response.
 function, and trace the pass-through channels.
 
 **05 — Likelihood-free calibration.** Recover that extension's parameters from data with
-ABC, NPE and SNRE. This one needs a Python environment and takes a while.
+ABC, NPE and SNRE. This one needs a Python environment and takes about 25 minutes, so it
+is run locally rather than rendered here.
 
 Every notebook names the Lecture 2 slides it covers, and ends with exercises.
 

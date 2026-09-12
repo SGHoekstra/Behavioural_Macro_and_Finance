@@ -6,8 +6,7 @@
 
 const SITE = joinpath(@__DIR__, "_site", "generated_assets")
 const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
-                      "03_shocks_expectations_policy", "04_extensions_canvas",
-                      "05_likelihood_free_calibration"]
+                      "03_shocks_expectations_policy", "04_extensions_canvas"]
 
 function main()
     isdir(SITE) || error("no generated_assets at $SITE — did the build run?")

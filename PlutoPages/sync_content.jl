@@ -7,13 +7,18 @@
 
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 
+# Notebook 05 is deliberately absent: it runs fine locally but fails inside the
+# Pluto worker on Linux with a pyexpat/libexpat symbol clash between torch and
+# Julia's Expat_jll. The same import order succeeds in a plain Julia process on
+# the same runner, so this is specific to the build, not to the notebook. It is
+# shipped as source and described by content/notebook05.md instead of rendering
+# a page with a live ImportError on it.
 const NOTEBOOKS = [
     ("00_julia_pluto_primer.jl",           "Julia + Pluto primer",                        1),
     ("01_meet_the_model.jl",               "Meet the model",                              2),
     ("02_calibration_and_forecasting.jl",  "Calibration, no-burn-in and forecasting",     3),
     ("03_shocks_expectations_policy.jl",   "Shocks, expectations and policy",             4),
     ("04_extensions_canvas.jl",            "Extending the model: CANVAS",                 5),
-    ("05_likelihood_free_calibration.jl",  "Likelihood-free calibration: ABC, NPE, SNRE", 6),
     ("cheatsheet.jl",                      "BeforeIT cheatsheet",                         7),
 ]
 

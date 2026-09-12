@@ -54,7 +54,7 @@ shared environment itself, so there is nothing to precompile per notebook.
 | 02 | `02_calibration_and_forecasting.jl` | Parameter tables and balance sheets, the no-burn-in property, Austria vs Italy, fan charts and an AR(1) benchmark |
 | 03 | `03_shocks_expectations_policy.jl` | The five AR(1) shock processes, bankruptcy cascades, non-linear responses, expectation formation and the Taylor rule |
 | 04 | `04_extensions_canvas.jl` | *Advanced* — extending the model with a CANVAS wage–price spiral |
-| 05 | `05_likelihood_free_calibration.jl` | *Advanced* — calibrating that extension: ABC, NPE and SNRE. Needs Python (`sbi`) |
+| 05 | `05_likelihood_free_calibration.jl` | *Advanced* — calibrating that extension: ABC, NPE and SNRE. Needs Python (`sbi`); run locally, not rendered on the site |
 
 `cheatsheet.jl` is a standalone reference, not part of the sequence.
 `canvas_model.jl` is not a notebook — it holds the CANVAS extension that notebooks 04 and

@@ -16,14 +16,14 @@ macro bind(def, element)
     #! format: on
 end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000001
+# ╔═╡ 0a000000-0000-0000-0000-000000000001
 begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
     using PlutoUI
 end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000002
+# ╔═╡ 0a000000-0000-0000-0000-000000000002
 md"""
 # Notebook 00 — Julia + Pluto Primer
 
@@ -40,7 +40,7 @@ If you are already comfortable with Julia, skip to **Notebook 01**.
 6. A mini exercise to check understanding
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000003
+# ╔═╡ 0a000000-0000-0000-0000-000000000003
 md"""
 ---
 ## 1. Variables and types
@@ -48,24 +48,30 @@ md"""
 Julia is dynamically typed — you rarely write types explicitly. But types matter for performance and for understanding `fieldnames` later.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000004
-# Basic values
-x = 3.14          # Float64
-n = 42            # Int64
-s = "hello"       # String
-flag = true       # Bool
-typeof(x), typeof(n), typeof(s)
+# ╔═╡ 0a000000-0000-0000-0000-000000000004
+begin
+    # Basic values
+    x = 3.14          # Float64
+    n = 42            # Int64
+    s = "hello"       # String
+    flag = true       # Bool
+    typeof(x), typeof(n), typeof(s)
+end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000005
+
+# ╔═╡ 0a000000-0000-0000-0000-000000000005
 md"""
 Julia also has **named tuples** — lightweight records without a struct:
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000006
-agent = (id = 1, income = 35_000.0, employed = true)
-agent.income   # dot-access by name
+# ╔═╡ 0a000000-0000-0000-0000-000000000006
+begin
+    agent = (id = 1, income = 35_000.0, employed = true)
+    agent.income   # dot-access by name
+end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000007
+
+# ╔═╡ 0a000000-0000-0000-0000-000000000007
 md"""
 ---
 ## 2. Functions
@@ -73,18 +79,21 @@ md"""
 Two common styles:
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000008
-# Multi-line function
-function compound_growth(value, rate, periods)
-    return value * (1 + rate)^periods
+# ╔═╡ 0a000000-0000-0000-0000-000000000008
+begin
+    # Multi-line function
+    function compound_growth(value, rate, periods)
+        return value * (1 + rate)^periods
+    end
+    
+    # One-liner
+    wage_after_tax(w, τ) = w * (1 - τ)
+    
+    compound_growth(1000.0, 0.02, 4)   # ≈ 1082
 end
 
-# One-liner
-wage_after_tax(w, τ) = w * (1 - τ)
 
-compound_growth(1000.0, 0.02, 4)   # ≈ 1082
-
-# ╔═╡ 00000000-0000-0000-0000-000000000009
+# ╔═╡ 0a000000-0000-0000-0000-000000000009
 md"""
 ---
 ## 3. Arrays and broadcasting
@@ -94,20 +103,26 @@ Arrays are **1-indexed** (not 0-indexed like Python).
 The **dot (`.`) operator** broadcasts any function element-wise — this is used heavily in BeforeIT to update all agents at once without a loop.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000a
-wages = [30_000.0, 45_000.0, 28_000.0, 60_000.0]
+# ╔═╡ 0a000000-0000-0000-0000-00000000000a
+begin
+    wages = [30_000.0, 45_000.0, 28_000.0, 60_000.0]
+    
+    # Element-wise tax deduction using broadcasting:
+    τ_inc = 0.2134    # income tax rate from Lecture 2 parameter table
+    net_wages = wages .* (1 - τ_inc)
+end
 
-# Element-wise tax deduction using broadcasting:
-τ_inc = 0.2134    # income tax rate from Lecture 2 parameter table
-net_wages = wages .* (1 - τ_inc)
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000b
-# Ranges and comprehensions
-quarters = 1:20                          # range object (lazy)
-gdp_fake = [100.0 * 1.005^t for t in quarters]   # list comprehension
-gdp_fake[end]   # last element
+# ╔═╡ 0a000000-0000-0000-0000-00000000000b
+begin
+    # Ranges and comprehensions
+    quarters = 1:20                          # range object (lazy)
+    gdp_fake = [100.0 * 1.005^t for t in quarters]   # list comprehension
+    gdp_fake[end]   # last element
+end
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000c
+
+# ╔═╡ 0a000000-0000-0000-0000-00000000000c
 md"""
 ---
 ## 4. Structs and `fieldnames`
@@ -115,26 +130,29 @@ md"""
 BeforeIT stores all agents in **structs** (plain data containers). You will use `fieldnames` to inspect what fields are available.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000d
-struct Household
-    id::Int
-    income::Float64
-    deposits::Float64
-    employed::Bool
+# ╔═╡ 0a000000-0000-0000-0000-00000000000d
+begin
+    struct Household
+        id::Int
+        income::Float64
+        deposits::Float64
+        employed::Bool
+    end
+    
+    h = Household(1, 35_000.0, 5_000.0, true)
+    fieldnames(typeof(h))    # (:id, :income, :deposits, :employed)
 end
 
-h = Household(1, 35_000.0, 5_000.0, true)
-fieldnames(typeof(h))    # (:id, :income, :deposits, :employed)
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000e
+# ╔═╡ 0a000000-0000-0000-0000-00000000000e
 h.income   # dot-access
 
-# ╔═╡ 00000000-0000-0000-0000-00000000000f
+# ╔═╡ 0a000000-0000-0000-0000-00000000000f
 md"""
 In BeforeIT, the model uses a **struct-of-arrays (SoA)** layout for performance: instead of a vector of `Household` structs, there is one struct containing vectors. This means `model.w_act.income` is the incomes of ALL active workers as a single array.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000010
+# ╔═╡ 0a000000-0000-0000-0000-000000000010
 md"""
 ---
 ## 5. Multiple dispatch
@@ -142,26 +160,29 @@ md"""
 Julia functions can have multiple **methods** — different implementations selected by argument type. This is how BeforeIT's model extensions work: you define a new method for your custom model type, and Julia calls it automatically.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000011
-# Default implementation
-set_price!(firms) = firms .* 1.02
+# ╔═╡ 0a000000-0000-0000-0000-000000000011
+begin
+    # Default implementation
+    set_price!(firms) = firms .* 1.02
+    
+    # Specialised method for a custom type
+    struct PriceSticky end
+    set_price!(firms, ::PriceSticky) = firms .* 1.005   # stickier prices
+    
+    prices = [10.0, 20.0, 30.0]
+    set_price!(copy(prices))             # uses default method → +2%
+end
 
-# Specialised method for a custom type
-struct PriceSticky end
-set_price!(firms, ::PriceSticky) = firms .* 1.005   # stickier prices
 
-prices = [10.0, 20.0, 30.0]
-set_price!(copy(prices))             # uses default method → +2%
-
-# ╔═╡ 00000000-0000-0000-0000-000000000012
+# ╔═╡ 0a000000-0000-0000-0000-000000000012
 set_price!(copy(prices), PriceSticky())   # uses sticky method → +0.5%
 
-# ╔═╡ 00000000-0000-0000-0000-000000000013
+# ╔═╡ 0a000000-0000-0000-0000-000000000013
 md"""
 In Notebook 07 you will override BeforeIT's pricing function with your own method — the same mechanism at a larger scale.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000014
+# ╔═╡ 0a000000-0000-0000-0000-000000000014
 md"""
 ---
 ## 6. Pluto specifics
@@ -172,49 +193,49 @@ Pluto notebooks are **reactive**: when you change a cell, every cell that depend
 Each variable can only be **defined once** in a Pluto notebook. If you want to define several things together, wrap them in a `begin ... end` block:
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000015
+# ╔═╡ 0a000000-0000-0000-0000-000000000015
 begin
     τ_vat = 0.1529     # VAT rate (from Lecture 2 parameter table)
     τ_firm = 0.0762    # corporate tax rate
 end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000016
+# ╔═╡ 0a000000-0000-0000-0000-000000000016
 md"""
 ### Interactive sliders with `@bind`
 
 `@bind` connects a widget to a Julia variable. Every time you move the slider, all dependent cells re-execute.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-000000000017
+# ╔═╡ 0a000000-0000-0000-0000-000000000017
 @bind τ_slider PlutoUI.Slider(0.0:0.01:0.5, default=0.2134, show_value=true)
 
-# ╔═╡ 00000000-0000-0000-0000-000000000018
+# ╔═╡ 0a000000-0000-0000-0000-000000000018
 # This cell re-runs every time you move the slider above
 net_income_demo = 50_000.0 * (1 - τ_slider)
 
-# ╔═╡ 00000000-0000-0000-0000-000000000019
+# ╔═╡ 0a000000-0000-0000-0000-000000000019
 md"""
 Net income at tax rate $(round(τ_slider * 100, digits=1))%: **€$(round(net_income_demo, digits=0))**
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001a
+# ╔═╡ 0a000000-0000-0000-0000-00000000001a
 md"""
 ### Expensive computations: use a Button
 
 For cells that take seconds to run, use a `Button` so they only re-run when you click — not on every slider change:
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001b
+# ╔═╡ 0a000000-0000-0000-0000-00000000001b
 @bind run_demo PlutoUI.Button("Run slow computation")
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001c
+# ╔═╡ 0a000000-0000-0000-0000-00000000001c
 begin
     run_demo   # depends on the button — re-runs when clicked
     sleep(0.1) # simulating a slow operation
     "Computation complete!"
 end
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001d
+# ╔═╡ 0a000000-0000-0000-0000-00000000001d
 md"""
 ---
 ## ✔ Checklist — you're ready for the tutorials if you can answer:
@@ -227,7 +248,7 @@ md"""
 If you can answer these, open **Notebook 01**.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001e
+# ╔═╡ 0a000000-0000-0000-0000-00000000001e
 md"""
 ---
 ## Mini exercise
@@ -236,10 +257,10 @@ md"""
 Then move the `inflation_rate` slider to see how the answer changes.
 """
 
-# ╔═╡ 00000000-0000-0000-0000-00000000001f
+# ╔═╡ 0a000000-0000-0000-0000-00000000001f
 @bind inflation_rate PlutoUI.Slider(0.0:0.005:0.05, default=0.02, show_value=true)
 
-# ╔═╡ 00000000-0000-0000-0000-000000000020
+# ╔═╡ 0a000000-0000-0000-0000-000000000020
 begin
     nominal_gdp = 400.0   # € billion
     n_quarters = 8
@@ -247,46 +268,46 @@ begin
     inflation_adjusted = nominal_gdp   # fix this!
 end
 
-# ╔═╡ 00000000-0000-0000-0000-000000000021
+# ╔═╡ 0a000000-0000-0000-0000-000000000021
 md"Inflation-adjusted GDP: **$(round(inflation_adjusted, digits=2)) € bn** (expected: ~$(round(nominal_gdp / (1 + inflation_rate)^n_quarters, digits=2)) € bn)"
 
-# ╔═╡ 00000000-0000-0000-0000-000000000022
+# ╔═╡ 0a000000-0000-0000-0000-000000000022
 md"""
 > **Answer** (unhide to check): `inflation_adjusted = nominal_gdp / (1 + inflation_rate)^n_quarters`
 """
 
 # ╔═╡ Cell order:
-# ╟─00000000-0000-0000-0000-000000000002
-# ╠═00000000-0000-0000-0000-000000000001
-# ╟─00000000-0000-0000-0000-000000000003
-# ╠═00000000-0000-0000-0000-000000000004
-# ╟─00000000-0000-0000-0000-000000000005
-# ╠═00000000-0000-0000-0000-000000000006
-# ╟─00000000-0000-0000-0000-000000000007
-# ╠═00000000-0000-0000-0000-000000000008
-# ╟─00000000-0000-0000-0000-000000000009
-# ╠═00000000-0000-0000-0000-00000000000a
-# ╠═00000000-0000-0000-0000-00000000000b
-# ╟─00000000-0000-0000-0000-00000000000c
-# ╠═00000000-0000-0000-0000-00000000000d
-# ╠═00000000-0000-0000-0000-00000000000e
-# ╟─00000000-0000-0000-0000-00000000000f
-# ╟─00000000-0000-0000-0000-000000000010
-# ╠═00000000-0000-0000-0000-000000000011
-# ╠═00000000-0000-0000-0000-000000000012
-# ╟─00000000-0000-0000-0000-000000000013
-# ╟─00000000-0000-0000-0000-000000000014
-# ╠═00000000-0000-0000-0000-000000000015
-# ╟─00000000-0000-0000-0000-000000000016
-# ╠═00000000-0000-0000-0000-000000000017
-# ╠═00000000-0000-0000-0000-000000000018
-# ╟─00000000-0000-0000-0000-000000000019
-# ╟─00000000-0000-0000-0000-00000000001a
-# ╠═00000000-0000-0000-0000-00000000001b
-# ╠═00000000-0000-0000-0000-00000000001c
-# ╟─00000000-0000-0000-0000-00000000001d
-# ╟─00000000-0000-0000-0000-00000000001e
-# ╠═00000000-0000-0000-0000-00000000001f
-# ╠═00000000-0000-0000-0000-000000000020
-# ╟─00000000-0000-0000-0000-000000000021
-# ╟─00000000-0000-0000-0000-000000000022
+# ╟─0a000000-0000-0000-0000-000000000002
+# ╠═0a000000-0000-0000-0000-000000000001
+# ╟─0a000000-0000-0000-0000-000000000003
+# ╠═0a000000-0000-0000-0000-000000000004
+# ╟─0a000000-0000-0000-0000-000000000005
+# ╠═0a000000-0000-0000-0000-000000000006
+# ╟─0a000000-0000-0000-0000-000000000007
+# ╠═0a000000-0000-0000-0000-000000000008
+# ╟─0a000000-0000-0000-0000-000000000009
+# ╠═0a000000-0000-0000-0000-00000000000a
+# ╠═0a000000-0000-0000-0000-00000000000b
+# ╟─0a000000-0000-0000-0000-00000000000c
+# ╠═0a000000-0000-0000-0000-00000000000d
+# ╠═0a000000-0000-0000-0000-00000000000e
+# ╟─0a000000-0000-0000-0000-00000000000f
+# ╟─0a000000-0000-0000-0000-000000000010
+# ╠═0a000000-0000-0000-0000-000000000011
+# ╠═0a000000-0000-0000-0000-000000000012
+# ╟─0a000000-0000-0000-0000-000000000013
+# ╟─0a000000-0000-0000-0000-000000000014
+# ╠═0a000000-0000-0000-0000-000000000015
+# ╟─0a000000-0000-0000-0000-000000000016
+# ╠═0a000000-0000-0000-0000-000000000017
+# ╠═0a000000-0000-0000-0000-000000000018
+# ╟─0a000000-0000-0000-0000-000000000019
+# ╟─0a000000-0000-0000-0000-00000000001a
+# ╠═0a000000-0000-0000-0000-00000000001b
+# ╠═0a000000-0000-0000-0000-00000000001c
+# ╟─0a000000-0000-0000-0000-00000000001d
+# ╟─0a000000-0000-0000-0000-00000000001e
+# ╠═0a000000-0000-0000-0000-00000000001f
+# ╠═0a000000-0000-0000-0000-000000000020
+# ╟─0a000000-0000-0000-0000-000000000021
+# ╟─0a000000-0000-0000-0000-000000000022

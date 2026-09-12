@@ -4,7 +4,7 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ cs000000-0000-0000-0000-000000000001
+# ╔═╡ c5000000-0000-0000-0000-000000000001
 begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
@@ -12,14 +12,14 @@ begin
     using Plots, Statistics
 end
 
-# ╔═╡ cs000000-0000-0000-0000-000000000002
+# ╔═╡ c5000000-0000-0000-0000-000000000002
 md"""
 # BeforeIT.jl — Quick-Reference Cheatsheet
 
 Keep this notebook open in a separate Pluto tab while working through the tutorials.
 """
 
-# ╔═╡ cs000000-0000-0000-0000-000000000003
+# ╔═╡ c5000000-0000-0000-0000-000000000003
 md"""
 ---
 ## Setup
@@ -187,6 +187,6 @@ forecast = [y_hist[end]; [β + α * forecast[t-1] for t in 2:T+1]]
 """
 
 # ╔═╡ Cell order:
-# ╟─cs000000-0000-0000-0000-000000000002
-# ╠═cs000000-0000-0000-0000-000000000001
-# ╟─cs000000-0000-0000-0000-000000000003
+# ╟─c5000000-0000-0000-0000-000000000002
+# ╠═c5000000-0000-0000-0000-000000000001
+# ╟─c5000000-0000-0000-0000-000000000003

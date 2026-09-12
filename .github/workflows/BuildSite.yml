@@ -57,6 +57,21 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
+      # Resolve the Python environment here rather than inside a Pluto worker.
+      # CondaPkg's output is captured into the notebook statefile during the
+      # build, so a bad resolve is invisible in the job log and only shows up
+      # as a rendered ImportError on the published page.
+      - name: Resolve and check the Python environment
+        run: |
+          julia --project=pluto_tutorial -e '
+            using PythonCall
+            sys = pyimport("sys")
+            v = pyconvert(String, sys.version)
+            println("python: ", v)
+            pyimport("torch"); pyimport("sbi.inference")
+            println("torch and sbi import cleanly")
+            startswith(v, "3.14") && error("resolved Python 3.14; the CondaPkg pin did not take effect")'
+
       - name: Sync course material into content/
         run: julia PlutoPages/sync_content.jl
 

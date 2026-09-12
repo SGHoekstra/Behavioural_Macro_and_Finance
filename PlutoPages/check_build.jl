@@ -24,7 +24,14 @@ function main()
         has_img = hasbytes("image/png") || hasbytes("image/svg+xml")
         has_err = hasbytes("not found in current path")
         has_err && push!(bad, "$nb: package environment not found — cell 1 failed")
-        (!has_img && !has_err) && push!(bad, "$nb: no rendered image output")
+        if !has_img && !has_err
+            # Surface whatever the notebook actually said, so a CI failure is
+            # self-explaining instead of just "no images".
+            txt = String(copy(blob))
+            m = match(r"(?:ArgumentError|UndefVarError|LoadError|Failed to precompile)[^\"]{0,140}", txt)
+            hint = m === nothing ? "no error text found either" : String(m.match)
+            push!(bad, "$nb: no rendered image output — $hint")
+        end
         # A build path in the output means Pkg's activate banner leaked into
         # the published page.
         hasbytes("Activating") && push!(bad, "$nb: Pkg activate banner leaked into the page")

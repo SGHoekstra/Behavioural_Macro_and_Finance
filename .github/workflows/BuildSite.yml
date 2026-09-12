@@ -50,6 +50,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-julia-v1-
 
+      # The notebooks activate pluto_tutorial/ but never instantiate it.
+      # On a fresh runner that environment has no packages installed, so every
+      # notebook renders empty. Locally this is invisible: the depot already
+      # has them.
+      - name: Instantiate the tutorial environment
+        run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
+
       - name: Sync course material into content/
         run: julia PlutoPages/sync_content.jl
 

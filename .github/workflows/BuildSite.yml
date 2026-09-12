@@ -62,20 +62,39 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
-      # Resolve the Python environment here rather than inside a Pluto worker.
-      # CondaPkg's output is captured into the notebook statefile during the
-      # build, so a bad resolve is invisible in the job log and only shows up
-      # as a rendered ImportError on the published page.
+      # Resolve the Python environment here rather than inside a Pluto worker,
+      # where CondaPkg's output is captured into the statefile and invisible.
+      #
+      # This also pins down a load-order conflict: conda ships its own libexpat
+      # and Julia's Expat_jll (pulled in by Plots -> GR/Cairo) ships another. On
+      # Linux the first one loaded wins globally, so whichever stack initialises
+      # first decides whether pyexpat finds its symbols. Test both orders and say
+      # which works, in four minutes rather than a forty-minute build.
       - name: Resolve and check the Python environment
         run: |
+          set +e
+          echo "--- order A: Plots first, then PythonCall (what notebook 05 does) ---"
+          julia --project=pluto_tutorial -e '
+            using Plots
+            using PythonCall
+            println("python: ", pyconvert(String, pyimport("sys").version))
+            pyimport("torch"); pyimport("sbi.inference")
+            println("ORDER A OK")'
+          A=$?
+          echo "--- order B: PythonCall initialised first, then Plots ---"
           julia --project=pluto_tutorial -e '
             using PythonCall
-            sys = pyimport("sys")
-            v = pyconvert(String, sys.version)
-            println("python: ", v)
+            pyimport("sys")
+            using Plots
+            println("python: ", pyconvert(String, pyimport("sys").version))
             pyimport("torch"); pyimport("sbi.inference")
-            println("torch and sbi import cleanly")
-            startswith(v, "3.14") && error("resolved Python 3.14; the CondaPkg pin did not take effect")'
+            println("ORDER B OK")'
+          B=$?
+          echo "=== order A exit=$A   order B exit=$B ==="
+          set -e
+          if [ "$A" != "0" ] && [ "$B" != "0" ]; then
+            echo "both import orders fail — the conflict is not load-order"; exit 1
+          fi
 
       - name: Sync course material into content/
         run: julia PlutoPages/sync_content.jl

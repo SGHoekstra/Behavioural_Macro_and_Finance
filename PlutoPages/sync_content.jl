@@ -20,9 +20,19 @@ const NOTEBOOKS = [
     ("cheatsheet.jl",               "BeforeIT cheatsheet",                        10),
 ]
 
+# The site serves the HANDOUT builds, not the presentation PDFs. Beamer emits
+# one page per overlay step, so lecture 1's 27 frames become 91 pages of
+# incremental reveals — unreadable as a document. Rebuilt with the class option
+# `handout`, it is 28. Lecture 2 has no overlays and is unchanged at 61, but it
+# uses the handout too so there is one rule rather than a special case.
+#
+# Regenerate after editing a deck (there is no LaTeX in CI, so these are
+# committed):
+#   cd lecture_1_intro_abm && pdflatex --shell-escape -jobname=main-handout \
+#     "\PassOptionsToClass{handout}{beamer}\input{main.tex}"
 const LECTURES = [
-    ("lecture_1_intro_abm/main.pdf",   "lecture_1_intro_abm.pdf"),
-    ("lecture_2_sfc_abm/lecture.pdf",  "lecture_2_sfc_abm.pdf"),
+    ("lecture_1_intro_abm/main-handout.pdf",  "lecture_1_intro_abm.pdf"),
+    ("lecture_2_sfc_abm/lecture-handout.pdf", "lecture_2_sfc_abm.pdf"),
 ]
 
 # Each notebook activates its own directory. Under content/notebooks/ that would

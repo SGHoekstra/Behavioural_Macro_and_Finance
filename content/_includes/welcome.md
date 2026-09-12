@@ -14,8 +14,8 @@ with likelihood-free calibration of a model extension.
 
 ## Start here
 
-- **[Lecture slides](/lectures/)** — both decks as PDF.
-- **[Running the notebooks](/installation/)** — install Julia and Pluto, or just read online.
+- **[Lecture slides](lectures/)** — both decks as PDF.
+- **[Running the notebooks](installation/)** — install Julia and Pluto, or just read online.
 - **Tutorial** — nine notebooks in the sidebar, in order.
 
 ## What the tutorial covers

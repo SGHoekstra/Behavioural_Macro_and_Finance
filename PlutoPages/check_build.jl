@@ -49,6 +49,21 @@ function main()
         end
     end
 
+    # PlutoPages rewrites its root_url placeholder to a RELATIVE path at write
+    # time, so every generated link comes out as "./assets/..." or ".". A
+    # root-relative "/lectures/" is therefore always hand-written and always
+    # wrong: the site is served from /Behavioural_Macro_and_Finance/, so it
+    # 404s in production while resolving fine against _site locally.
+    for (root, _, files) in walkdir(site), f in files
+        endswith(f, ".html") || continue
+        for m in eachmatch(r"(?:href|src)=\"(/[^\"]*)\"", read(joinpath(root, f), String))
+            t = m.captures[1]
+            startswith(t, "//") && continue   # protocol-relative, fine
+            push!(bad, "$(relpath(joinpath(root, f), site)): root-relative link \"$t\" 404s in production")
+        end
+    end
+    unique!(bad)
+
     if isempty(bad)
         println("check_build: $(length(EXPECT_PLOTS)) notebooks rendered output, both lecture PDFs present ✓")
     else

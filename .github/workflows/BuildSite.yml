@@ -62,23 +62,35 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
-      # Guards the import order notebook 05 depends on. torch pulls in pyexpat,
-      # which must bind to conda's libexpat; on Linux symbols resolve globally, so
-      # if Plots loads first it drags in Julia's Expat_jll and pyexpat binds to
-      # that instead, failing with "undefined symbol: XML_SetHashSalt16Bytes".
-      # Measured on this runner: Plots-first fails, torch-first succeeds. This runs
-      # in three minutes and fails the build immediately, rather than letting a
-      # broken notebook reach the published site forty minutes later.
+      # Mirrors notebook 05's cell 1 exactly. torch-then-Plots passes in a bare
+      # process but the notebook still fails, and the remaining difference is that
+      # BeforeIT loads first. Test with and without it to find out.
       - name: Check the Python environment and import order
         run: |
+          set +e
+          echo "--- D: exactly notebook 05 cell 1 (BeforeIT, then Python, then Plots) ---"
+          julia --project=pluto_tutorial -e '
+            import BeforeIT as Bit
+            using PythonCall
+            pyimport("torch"); pyimport("sbi.inference")
+            using Plots
+            plot(1:3, 1:3)
+            println("ORDER D OK")'
+          D=$?
+          echo "--- E: Python first, BeforeIT after ---"
           julia --project=pluto_tutorial -e '
             using PythonCall
-            pyimport("torch"); pyimport("sbi.inference")   # bind pyexpat first
+            pyimport("torch"); pyimport("sbi.inference")
+            import BeforeIT as Bit
             using Plots
-            plot(1:3, 1:3)                                  # force Expat_jll to load
-            v = pyconvert(String, pyimport("sys").version)
-            println("python: ", v)
-            println("torch and sbi import cleanly with Plots loaded")'
+            plot(1:3, 1:3)
+            println("ORDER E OK")'
+          E=$?
+          echo "=== D exit=$D   E exit=$E ==="
+          set -e
+          if [ "$D" != "0" ] && [ "$E" != "0" ]; then
+            echo "both fail — not explained by BeforeIT ordering"; exit 1
+          fi
 
       - name: Sync course material into content/
         run: julia PlutoPages/sync_content.jl

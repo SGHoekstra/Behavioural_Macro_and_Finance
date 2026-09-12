@@ -1,7 +1,6 @@
 /* a minimalist set of CSS resets */
 
 @import url("https://cdn.jsdelivr.net/npm/normalize.css@8.0.1/normalize.css");
-@import url("lecture_header.css");
 @import url("newdefault.css");
 
 /* @import url('https://cdn.jsdelivr.net/gh/fonsp/Pluto.jl@0.18.0/frontend/vollkorn.css'); */

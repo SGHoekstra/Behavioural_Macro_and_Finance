@@ -37,6 +37,14 @@ end
 
 function main()
     nbdir = mkpath(joinpath(ROOT, "content", "notebooks"))
+
+    # Every notebook calls Pkg.activate(dirname(@__FILE__)). Without the
+    # environment files beside the copies that activates an EMPTY project, cell 1
+    # fails with "Package PlutoUI not found", and the whole notebook silently
+    # renders as an error with no outputs.
+    for env in ("Project.toml", "Manifest.toml", "CondaPkg.toml")
+        cp(joinpath(ROOT, "pluto_tutorial", env), joinpath(nbdir, env); force = true)
+    end
     for (file, title, order) in NOTEBOOKS
         src = joinpath(ROOT, "pluto_tutorial", file)
         isfile(src) || error("missing notebook: $src")

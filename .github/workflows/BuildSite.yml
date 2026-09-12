@@ -59,6 +59,11 @@ jobs:
             import Pkg; Pkg.instantiate();
             include("./PlutoPages/generate.jl")'
 
+      # generate.jl only inspects its own cells, so a content notebook whose
+      # first cell throws still exits 0 and ships a site of empty shells.
+      - name: Verify notebooks actually rendered
+        run: julia PlutoPages/check_build.jl
+
       - name: Upload generation report
         uses: actions/upload-artifact@v4
         if: always()

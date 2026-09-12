@@ -215,7 +215,7 @@ begin
     Random.seed!(7)
     ens_poledna_base  = Bit.ensemblerun(Bit.Model(nb07_p, nb07_ic), 16, 10)
     Random.seed!(7)
-    ens_poledna_shock = Bit.ensemblerun(Bit.Model(nb07_p, nb07_ic), 16, 10; shock = wage_shock)
+    ens_poledna_shock = Bit.ensemblerun(Bit.Model(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
 
     CANVAS_phi[] = (dp = phi_dp, cp = phi_cp, ae = phi_ae)
 
@@ -234,7 +234,7 @@ begin
     Random.seed!(7)
     ens_canvas_base  = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10)
     Random.seed!(7)
-    ens_canvas_shock = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock = wage_shock)
+    ens_canvas_shock = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
 
     "CANVAS run complete ✓"
 end
@@ -302,7 +302,7 @@ begin
         Random.seed!(7)
         ens_b = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10)
         Random.seed!(7)
-        ens_s = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock = wage_shock)
+        ens_s = Bit.ensemblerun(build_canvas(nb07_p, nb07_ic), 16, 10; shock! = wage_shock)
         CANVAS_phi[] = (dp=phi_dp, cp=phi_cp, ae=phi_ae)
         return ens_b, ens_s
     end

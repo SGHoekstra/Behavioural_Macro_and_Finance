@@ -51,7 +51,7 @@ md"""
 
 The model ships with a fully pre-calibrated parametrisation of the Austrian economy at the start of Q1 2010. All 50+ parameters are read directly from Eurostat national accounts — no free parameters to tune.
 
-Recall from Lecture 2 the full parameter table: VAT = 15.29%, MPC $\psi$ = 93.94%, corporate tax = 7.62%, etc.
+A few headline values from `Bit.AUSTRIA2010Q1`: VAT $\tau^{VAT}$ = 15.29%, MPC $\psi$ = 90.97%, corporate tax $\tau^{FIRM}$ = 7.70%. Read any of them off `model.prop` directly.
 """
 
 # ╔═╡ 01000000-0000-0000-0000-000000000004
@@ -66,7 +66,9 @@ md"""
 ---
 ## Step 2 — Initialise the model
 
-`Bit.Model` creates all ~9.9 million agents and wires up the full stock-flow-consistent balance sheet structure.
+`Bit.Model` builds every agent and wires up the full stock-flow-consistent balance sheet structure.
+
+Note the scale. Lecture 2 quotes ~9.9 million agents for the *actual* Austrian economy, but `Bit.AUSTRIA2010Q1` ships a **1:1000 scaled** version — about 10,000 agents — so a run takes seconds rather than hours. Every ratio and share is preserved; only the head counts are divided through. Notebook 02 reproduces the full table.
 """
 
 # ╔═╡ 01000000-0000-0000-0000-000000000006

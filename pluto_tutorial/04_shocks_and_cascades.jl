@@ -64,7 +64,7 @@ Unlike the Assenza et al. (2015) model (Lecture 1) where fluctuations are entire
 | 4 | Euro-area GDP growth $\gamma^{EA}_t$ | `model.agg.epsilon_Y_EA` | Feeds Taylor rule |
 | 5 | Euro-area inflation $\pi^{EA}_t$ | — | Feeds Taylor rule |
 
-Each process is drawn each quarter from $\mathcal{N}(0, \mathbf{C})$ where $\mathbf{C}$ is the covariance matrix estimated from data. Let's look at the shock realisations over a simulated run.
+Processes 1, 2 and 4 — the ones with an `epsilon_*` field — are drawn jointly each quarter from $\mathcal{N}(0, \mathbf{C})$, where $\mathbf{C}$ is the $3\times3$ covariance matrix estimated from data, so they are *correlated*. Processes 3 and 5 draw independently from their own scalar standard deviations (`gov.sigma_G` and `rotw.sigma_pi_EA`) and are not part of $\mathbf{C}$. Let's look at the shock realisations over a simulated run.
 """
 
 # ╔═╡ 04000000-0000-0000-0000-000000000005
@@ -292,7 +292,7 @@ md"""
 ---
 ## ✔ What you learned
 
-- Five exogenous AR(1) processes drive the model; they're drawn from a calibrated covariance matrix `model.prop.C`.
+- Five exogenous AR(1) processes drive the model; three of them are drawn jointly from the calibrated 3×3 covariance matrix `model.prop.C`, the other two from their own scalar sigmas.
 - A custom shock is a callable struct that modifies model state; passed as `shock!` to `ensemblerun!`.
 - The bankruptcy cascade propagates through labour, supply-chain, and credit channels simultaneously.
 - Setting `model.agg.t == 1` inside the shock callable makes the shock permanent-from-period-1 style.

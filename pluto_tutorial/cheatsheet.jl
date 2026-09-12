@@ -51,12 +51,23 @@ Bit.collect_data!(model)           # save time series
 
 Bit.run!(model, T)                 # T quarters, in-place
 
-# Equivalent explicit loop:
+# Equivalent explicit loop. Note run! defaults to parallel = false,
+# so pass it explicitly to match:
 for _ in 1:T
-    Bit.step!(model; parallel = true)
+    Bit.step!(model; parallel = false)
     Bit.collect_data!(model)
 end
 ```
+
+Watch the `parallel` defaults — they differ by function:
+
+| Call | default |
+|---|---|
+| `Bit.run!(model, T)` | `parallel = false` |
+| `Bit.ensemblerun!(models, T)` | `parallel = true` |
+| `Bit.ensemblerun(model, T, n)` | `parallel = true` |
+
+The shock keyword is `shock!` (with the bang) on all of them.
 
 ## Monte Carlo
 ```julia

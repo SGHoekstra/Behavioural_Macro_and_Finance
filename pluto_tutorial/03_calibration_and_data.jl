@@ -150,7 +150,7 @@ Lecture 2 claims: *"If we suppress the growth processes, the model fluctuates ar
 
 **Let's test this claim with three scenarios over 20 quarters (5 years):**
 1. **Shocks ON** — normal Austria 2010:Q1 run.
-2. **Shocks OFF (`C=0`)** — zero the shock covariance matrix `model.prop.C`. Suppresses all stochastic AR(1) innovations; deterministic drift terms β remain.
+2. **Shocks OFF (`C=0`)** — zero the shock covariance matrix `model.prop.C`. This suppresses **three of the five** stochastic innovations (euro-area GDP, export demand, import supply); deterministic drift terms β remain, and so do the government-consumption and euro-area-inflation shocks, which have their own scalar σ rather than coming from `C`.
 3. **Full steady state** — use `Bit.STEADY_STATE2010Q1`, a built-in calibration where all AR(1) drift and noise are zero, the policy rate is fixed, and agent histories are pre-loaded with flat time series so the OLS expectations do not re-introduce drift.
 
 If the claim holds, scenarios 2 and 3 should stay much closer to the t=0 value than the full-shock run, with scenario 3 showing the least drift of all.
@@ -169,7 +169,11 @@ begin
     Bit.run!(model_shocks_on, 20)
 
     # --- No-burn-in: shocks OFF (zero covariance matrix only) ---
-    # model.prop.C is the 3×3 covariance matrix of the five exogenous AR(1) innovations.
+    # model.prop.C is the 3×3 covariance matrix of the three CORRELATED innovations
+    # (eps_Y_EA, eps_E, eps_I). The other two exogenous processes — government
+    # consumption and euro-area inflation — draw from their own scalar sigmas
+    # (gov.sigma_G, rotw.sigma_pi_EA) and are NOT silenced by zeroing C.
+    # That is precisely why scenario 3 below is quieter than scenario 2.
     # Setting it to zero suppresses all stochastic noise; deterministic AR(1) drift remains.
     Random.seed!(42)
     model_no_shocks = Bit.Model(nb03_p_AT, nb03_ic_AT)
@@ -322,7 +326,7 @@ md"""
 
 - ~50 parameters are read from data; only the AR(1)/Taylor rule block is estimated.
 - The initial balance sheets are loaded from Eurostat national accounts — the SFC structure is exact at $t=0$.
-- Setting `model.prop.C .= 0` zeros the five AR(1) shock processes; `Bit.STEADY_STATE2010Q1` goes further by also zeroing AR(1) drift and flattening agent expectation histories. Together these demonstrate the **quasi-fixed-point** property that eliminates burn-in.
+- Setting `model.prop.C .= 0` zeros three of the five AR(1) shock processes — the correlated ones; government consumption and euro-area inflation keep drawing from their own sigmas. `Bit.STEADY_STATE2010Q1` goes further by also zeroing AR(1) drift and flattening agent expectation histories. Together these demonstrate the **quasi-fixed-point** property that eliminates burn-in.
 - Italy and Austria have measurably different structures, visible after just 20 quarters.
 
 ---

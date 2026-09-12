@@ -60,7 +60,7 @@ md"""
 ---
 ## 1 — Who are the agents?
 
-The Lecture 2 table "How big is the model?" reports ~9.9 million agents for Austria 2010:Q4. Let's reproduce it from the model directly.
+The Lecture 2 table "How big is the model?" reports ~9.9 million agents for Austria 2010:Q4 — the real economy. `Bit.AUSTRIA2010Q1` is scaled **1:1000** so that a run finishes in seconds, so expect counts around a thousandth of the lecture's. Shares and ratios are unaffected.
 """
 
 # ╔═╡ 02000000-0000-0000-0000-000000000005
@@ -72,7 +72,7 @@ begin
                                 "Firms / investors",
                                 "Government entities",
                                 "Foreign consumers",
-                                "Foreign firms (imports)"],
+                                "Foreign firms (imports) = sectors"],
         "Count"             => [p.H_act, p.H_inact, p.I, p.J, p.L, p.G],
     )
     agent_table
@@ -80,7 +80,9 @@ end
 
 # ╔═╡ 02000000-0000-0000-0000-000000000006
 md"""
-**Total: $(nb02_model.prop.H_act + nb02_model.prop.H_inact + nb02_model.prop.I + nb02_model.prop.J + nb02_model.prop.L + nb02_model.prop.G) agents** (should be ~9.9 million).
+**Total: $(nb02_model.prop.H_act + nb02_model.prop.H_inact + nb02_model.prop.I + nb02_model.prop.J + nb02_model.prop.L + nb02_model.prop.G) agents** — about 1/1000 of the lecture's 9.9 million, as expected from the scaling.
+
+One label needs care: `prop.G` is the number of production **sectors** (62, the NACE breakdown), which doubles as the count of foreign supplier firms because imports arrive one representative firm per sector. It is the same `g` index used in `P_bar_g` and `firms.G_i`.
 
 The four household types from Lecture 2:
 - **Employed** (`nb02_model.w_act`) — labour supplied to a specific sector.
@@ -243,17 +245,10 @@ begin
     leontief
 end
 
-# ╔═╡ aba509d9-e59e-4ed0-a10e-4e0eced6cca6
-
-
 # ╔═╡ 02000000-0000-0000-0000-000000000010
 md"""
 > **Exercise 02.1** — Sort the table by $\bar\alpha_i$ (labour productivity). Which sector has the **highest** labour productivity (most output per worker)? Which sector is most **labour-intensive** (lowest $\bar\alpha_i$ — requires the most workers per unit of output)? Do capital productivity $\kappa_i$ and labour productivity tend to move together across sectors?
 """
-
-# ╔═╡ 547bec48-e616-4ede-8170-bd121e6bed31
-sort(leontief, 3, rev=true)
-
 
 # ╔═╡ 02000000-0000-0000-0000-000000000011
 md"""
@@ -455,9 +450,6 @@ md"""
 **Exercise 02.3** *(stretch)* — The bankruptcy cascade argument says that a shock to a **high out-degree** sector is especially damaging. Based on your answer above, which sector would be the most dangerous to shock?
 """
 
-# ╔═╡ b6a2f182-0c9c-412f-ae29-ee2d05e6318d
-sum(nb02_model.prop.a_sg,[1])
-
 # ╔═╡ Cell order:
 # ╟─02000000-0000-0000-0000-000000000002
 # ╠═02000000-0000-0000-0000-000000000001
@@ -478,9 +470,7 @@ sum(nb02_model.prop.a_sg,[1])
 # ╟─02000000-0000-0000-0000-00000000000d
 # ╟─02000000-0000-0000-0000-00000000000e
 # ╠═02000000-0000-0000-0000-00000000000f
-# ╠═aba509d9-e59e-4ed0-a10e-4e0eced6cca6
 # ╟─02000000-0000-0000-0000-000000000010
-# ╠═547bec48-e616-4ede-8170-bd121e6bed31
 # ╟─02000000-0000-0000-0000-000000000011
 # ╠═02000000-0000-0000-0000-000000000012
 # ╟─02000000-0000-0000-0000-000000000013
@@ -497,4 +487,3 @@ sum(nb02_model.prop.a_sg,[1])
 # ╠═02000000-0000-0000-0000-00000000001b
 # ╟─02000000-0000-0000-0000-00000000001c
 # ╟─02000000-0000-0000-0000-00000000001d
-# ╠═b6a2f182-0c9c-412f-ae29-ee2d05e6318d

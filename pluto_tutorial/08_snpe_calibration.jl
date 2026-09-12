@@ -86,7 +86,7 @@ giving a $2T$-dimensional summary statistic. In a real application $x_{\text{obs
 
 # ╔═╡ 08000000-0000-0000-0000-000000000005
 begin
-    # Scale=0.0001 gives ~62 firms — fast enough for SBI simulation budgets.
+    # Scale=0.0001 gives 481 firms across 62 sectors — small enough for SBI budgets.
     # Finite-size noise is handled by MC averaging:
     #   N_obs   — large, for x_obs; mimics empirical data aggregated over many draws.
     #   N_paths — smaller, for each training simulation; balances noise vs. runtime.
@@ -112,7 +112,7 @@ begin
     T_sim   = 12
     N_obs   = 64  # MC replications for x_obs — large N gives a smooth "empirical" target
     N_paths = 8   # MC replications for each training simulation (speed/quality trade-off)
-    """Setup complete — $(length(parameters["I_s"])) firms, H_act=$(round(Int, parameters["H_act"])). True θ = $(θ_true)"""
+    """Setup complete — $(round(Int, sum(parameters["I_s"]))) firms across $(length(parameters["I_s"])) sectors, H_act=$(round(Int, parameters["H_act"])). True θ = $(θ_true)"""
 end
 
 # ╔═╡ 08000000-0000-0000-0000-000000000006

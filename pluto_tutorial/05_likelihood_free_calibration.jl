@@ -47,8 +47,17 @@ begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
     import BeforeIT as Bit
-    using Plots, PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
+
+    # Python goes first, and torch is imported here rather than left to the sbi
+    # cell below. torch pulls in pyexpat, which must bind to conda's libexpat.
+    # On Linux the dynamic linker resolves symbols globally, so if Plots loads
+    # first it drags in Julia's Expat_jll and pyexpat binds to that instead,
+    # dying with "undefined symbol: XML_SetHashSalt16Bytes". Importing torch
+    # before Plots gets pyexpat bound correctly and everything else follows.
     using PythonCall
+    pyimport("torch")
+
+    using Plots, PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
 end
 
 # ╔═╡ fe47a3e4-aeb2-11f1-8672-87cfc7b65656

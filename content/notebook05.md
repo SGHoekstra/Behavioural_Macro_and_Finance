@@ -62,16 +62,19 @@ Open `05_likelihood_free_calibration.jl` in Pluto. Opening the notebook starts i
 and training stages are disabled. Enabling the local
 environment may install Python, PyTorch and `sbi` on first use.
 
-1. **Enable the local environment.** Read the observation protocol and small-budget settings.
+1. **Enable the local environment.** Read the observation protocol and simulation and sampling budgets.
 2. **Generate the synthetic observation.** Twelve quarterly inflation rates and twelve growth rates form a 24-value vector.
 3. **Generate the ABC bank, optionally.** Move its tolerance slider to reuse the stored distances without new ABM runs.
 4. **Generate the neural training bank.** Inspect the coefficient/output matrix dimensions and any failed simulations.
 5. **Train NPE.** Interpret all three marginals and inspect their joint relationships.
 6. **Train NRE-B, optionally.** It reuses the neural bank and samples using MCMC.
+7. **Run diagnostics, optionally.** Inspect known-truth intervals, fresh posterior predictions, NPE calibration ranks and NRE chain mixing.
 
-The default experiment uses **four simulated paths per output**, **100 ABC parameter
-draws** and **200 neural training draws**. NPE draws 1,000 approximate posterior
-samples; the optional NRE run draws 200 MCMC samples. These are teaching budgets,
+The default experiment uses **four simulated paths per output**, **1,000 ABC parameter
+draws** and **2,000 neural training pairs**. NPE draws 5,000 approximate posterior
+samples; the optional NRE run draws 2,000 MCMC samples across four chains, after
+500 warmup draws per chain. ABC defaults to the 10th percentile of the simulated
+distances, retaining approximately the closest 10%. These are teaching budgets,
 not an accuracy guarantee. Runtime varies by computer; start with the defaults
 before increasing the cost.
 
@@ -97,6 +100,12 @@ removed from the estimation sample.
 A same-model recovery exercise cannot establish that the model represents the real
 economy or predicts a policy intervention reliably. Even good prediction of the two
 fitted series can leave different pricing mechanisms observationally similar.
+
+The saved run includes 50 posterior-predictive outputs per method, 50 fresh
+prior-predictive NPE calibration experiments, and NRE rank-normalised R-hat and
+bulk/tail effective sample sizes. Calibration uses 1,000 NPE draws per new
+observation. The calibration sample is small and examines marginals; these checks
+do not establish joint posterior accuracy, NRE calibration or policy validity.
 
 ## Exercises to start with
 

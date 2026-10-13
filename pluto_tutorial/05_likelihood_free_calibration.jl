@@ -128,8 +128,13 @@ begin
     T_sim = 12
     N_paths = 4
     N_obs = N_paths  # same observation distribution as the training simulator
-    N_abc = 100
-    N_sbi = 200
+    N_abc = 1000
+    N_sbi = 2000
+    N_npe_draws = 5000
+    N_nre_draws = 2000
+    ABC_accept_fraction = 0.10
+    N_diagnostic_observations = 50
+    N_predictive_draws = 50
     "Setup: $(round(Int, sum(parameters["I_s"]))) firms; T=$(T_sim), $(N_paths) paths per output. Synthetic truth: $(θ_true)."
 end
 
@@ -141,6 +146,11 @@ begin
                    (θ_true, T_sim, N_paths, N_abc, N_sbi)
     demo_matches &= loaded_demo["metadata"]["canvas_sha256"] ==
         bytes2hex(SHA.sha256(read(joinpath(@__DIR__, "canvas_model.jl"))))
+    demo_matches &= get(loaded_demo, "N_npe_draws", 0) == N_npe_draws &&
+                    get(loaded_demo, "N_nre_draws", 0) == N_nre_draws &&
+                    get(loaded_demo, "ABC_accept_fraction", 0) == ABC_accept_fraction &&
+                    get(loaded_demo, "N_diagnostic_observations", 0) == N_diagnostic_observations &&
+                    get(loaded_demo, "N_predictive_draws", 0) == N_predictive_draws
     saved_demo = demo_matches ? loaded_demo : nothing
     demo_epsilon = demo_matches ? loaded_demo["ε"] : nothing
     demo_accepted = demo_matches ? count(d -> d < demo_epsilon, loaded_demo["abc_bank"].distances) : 0
@@ -255,7 +265,7 @@ The button generates a bank of distances once. Move the tolerance slider afterwa
 """
 
 # ╔═╡ fe47a48e-aeb2-11f1-ba58-7f92563411e7
-@bind run_abc PlutoUI.CounterButton("2 — Generate the ABC bank (100 parameter draws)")
+@bind run_abc PlutoUI.CounterButton("2 — Generate the ABC bank (1,000 parameter draws)")
 
 # ╔═╡ fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
 begin
@@ -265,6 +275,8 @@ begin
             # Prior draws are made independently of summarise's global RNG resets.
             distances = [norm(summarise(θ; seed=10_000+i) .- x_obs)
                          for (i, θ) in enumerate(draws)]
+            println("ABC bank complete: ", length(distances), " finite distances.")
+            flush(stdout)
             (parameters=draws, distances=distances)
         end
     else
@@ -277,12 +289,20 @@ end
 
 
 # ╔═╡ f0050000-0000-4000-8000-000000000003
-md"""
-ABC tolerance $\epsilon$: $(@bind ε PlutoUI.Slider(0.005:0.005:0.10; default=0.03, show_value=true))
+begin
+    nb5_default_epsilon = abc_bank === nothing ? 0.005 :
+        quantile(abc_bank.distances, ABC_accept_fraction)
+    nb5_tolerances = sort(unique(vcat(nb5_default_epsilon .* [0.5, 0.75, 1.0, 1.5, 2.0], [0.03])))
+    md"""
+    ABC tolerance $\epsilon$: $(@bind ε PlutoUI.Slider(nb5_tolerances; default=nb5_default_epsilon, show_value=true))
 
-This is an illustrative starting value in trajectory-norm units, not a validated tolerance.
-The reading-mode figure uses the saved tolerance; the slider replots only with local execution enabled.
-"""
+    The default is the **10th percentile of this bank's distances**, retaining approximately
+    the closest 10% of prior simulations. This is an explicit, data-dependent tolerance rule,
+    not an accuracy guarantee. A larger simulation budget permits exploring smaller tolerances
+    while retaining useful numbers of draws. The reading-mode figure uses the saved default;
+    the slider replots only with local execution enabled.
+    """
+end
 
 # ╔═╡ fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
 begin
@@ -365,13 +385,13 @@ md"""
 
 Every row of the coefficient matrix is `[dp, cp, ae]`. The corresponding row of the output matrix is `[T inflation rates; T growth rates]`.
 
-For the default `N_sbi=200` and `T_sim=12`, the shapes are **200 × 3** and **200 × 24**. Conversion to `Float32` matches PyTorch's default training precision; it does not change the meaning or units of the observations.
+For the default `N_sbi=2000` and `T_sim=12`, the shapes are **2,000 × 3** and **2,000 × 24**. Conversion to `Float32` matches PyTorch's default training precision; it does not change the meaning or units of the observations.
 
 Failed or non-finite simulations are reported and **block training**. Silently deleting parameter-dependent failures can change the distribution being estimated. Diagnose the model or observation protocol first. The error messages below give the first few affected draws.
 """
 
 # ╔═╡ fe47a506-aeb2-11f1-a7b7-5308423c8cfe
-@bind run_sbi_sims PlutoUI.CounterButton("3 — Generate neural training pairs (200 draws)")
+@bind run_sbi_sims PlutoUI.CounterButton("3 — Generate neural training pairs (2,000 draws)")
 
 # ╔═╡ fe47a510-aeb2-11f1-a698-ef70514f417b
 begin
@@ -390,6 +410,10 @@ begin
                 catch err
                     err isa InterruptException && rethrow()
                     push!(failures, "draw $(i), θ=$(θ): $(sprint(showerror, err))")
+                end
+                if i % 200 == 0
+                    println("Training simulations: ", i, "/", N_sbi, "; failures: ", length(failures))
+                    flush(stdout)
                 end
             end
             (parameters=θs, outputs=xs, failures=failures)
@@ -447,10 +471,10 @@ begin
             _torch.manual_seed(0)
             engine = _sbi_inf.SNPE(prior=_sbi_prior)
             engine.append_simulations(_θ_tensor, _x_tensor)
-            estimator = engine.train(max_num_epochs=100, stop_after_epochs=10,
+            estimator = engine.train(max_num_epochs=300, stop_after_epochs=20,
                                      show_train_summary=true)
             posterior = engine.build_posterior(estimator).set_default_x(_x_obs_t)
-            raw = posterior.sample([1000])
+            raw = posterior.sample([N_npe_draws])
             samples = PythonCall.pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
             (engine, posterior, samples)
         end
@@ -510,14 +534,14 @@ begin
             _torch.manual_seed(0)
             engine = _sbi_inf.SNRE_B(prior=_sbi_prior)
             engine.append_simulations(_θ_tensor, _x_tensor)
-            classifier = engine.train(num_atoms=min(10, fld(length(sbi_bank.parameters), 10)), max_num_epochs=100,
-                                      stop_after_epochs=10, show_train_summary=true)
+            classifier = engine.train(num_atoms=min(10, fld(length(sbi_bank.parameters), 10)), max_num_epochs=300,
+                                      stop_after_epochs=20, show_train_summary=true)
             posterior = engine.build_posterior(classifier,
                 posterior_parameters=_mcmc_par(method="slice_np_vectorized",
-                    num_chains=4, thin=1, warmup_steps=100)).set_default_x(_x_obs_t)
+                    num_chains=4, thin=1, warmup_steps=500)).set_default_x(_x_obs_t)
             _torch.manual_seed(0)
             _np.random.seed(0)
-            raw = posterior.sample([200])
+            raw = posterior.sample([N_nre_draws])
             samples = PythonCall.pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
             (engine, posterior, samples)
         end
@@ -526,7 +550,7 @@ begin
     end
     snre_samples === nothing ? md"Generate a valid training bank, then press button 5." :
     snre_engine === nothing ? md"Saved NRE-B result: **$(size(snre_samples, 1)) MCMC draws** from the default run. These draws are correlated; press button 5 locally to retrain." :
-        md"NRE-B produced **$(size(snre_samples, 1)) MCMC draws** from an approximate posterior. These are not 200 independent observations."
+        md"NRE-B produced **$(size(snre_samples, 1)) MCMC draws** from an approximate posterior. The draws are correlated; inspect the chain diagnostics below."
 end
 
 # ╔═╡ fe47a588-aeb2-11f1-8e59-3947a4232ada
@@ -547,6 +571,181 @@ begin
         Plots.vline!(p3_snre, [θ_true.ae], color=:red, lw=2, label="")
         Plots.plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(1050,420),
              bottom_margin=6Plots.mm, top_margin=4Plots.mm)
+    end
+end
+
+# ╔═╡ f0050000-0000-4000-8000-000000000005
+md"""
+### Step 3 — Measure recovery, prediction and sampling quality
+
+The optional sixth stage records the median and central 90% interval for the known
+truth, generates **50 fresh posterior-predictive outputs per neural method**, and
+runs **50 prior-predictive NPE calibration experiments**, each with 1,000 conditional
+posterior draws. All new observations use the original four-path observation protocol
+and seeds outside the fitting ranges. This stage does not retrain the networks.
+
+NPE calibration ranks count posterior draws below each simulated true coefficient.
+Uniform ranks are a necessary check for calibrated marginals; 50 experiments have
+limited power, and marginal checks can miss errors in joint dependence. The reported
+90% interval coverage is measured across these new experiments, not inferred from
+the one red truth line. NRE calibration across new observations remains a separate,
+more expensive exercise.
+
+For NRE, diagnostics use **four separate chains**, after discarding 500 warmup draws
+per chain and transforming back to coefficient units. Rank-normalised R-hat, bulk
+ESS and tail ESS assess the sampler. They do not validate the learned ratio or the
+economic mechanism. See the [SBI diagnostic guide](https://sbi.readthedocs.io/en/stable/how_to_guide/12_mcmc_diagnostics_with_arviz.html).
+"""
+
+# ╔═╡ f0050000-0000-4000-8000-000000000006
+@bind run_diagnostics PlutoUI.CounterButton("6 — Check recovery, prediction and chain mixing (optional)")
+
+# ╔═╡ f0050000-0000-4000-8000-000000000007
+begin
+    function nb5_check_inference(npe, nre, npe_samples, nre_samples)
+        recovery = Dict{String, Any}()
+        predictive = Dict{String, Any}()
+        for (method, samples, base_seed) in (("NPE", npe_samples, 40_000), ("NRE", nre_samples, 50_000))
+            recovery[method] = Dict("median" => vec(median(samples; dims=1)),
+                "lower" => [quantile(samples[:, k], 0.05) for k in 1:3],
+                "upper" => [quantile(samples[:, k], 0.95) for k in 1:3])
+            indices = randperm(Xoshiro(base_seed), size(samples, 1))[1:N_predictive_draws]
+            outputs = reduce(vcat, [permutedims(summarise(
+                (dp=samples[row, 1], cp=samples[row, 2], ae=samples[row, 3]); seed=base_seed+i))
+                for (i, row) in enumerate(indices)])
+            predictive[method] = outputs
+        end
+        println("Posterior-predictive outputs complete: ", N_predictive_draws, " per method.")
+        flush(stdout)
+
+        rng = Xoshiro(2026)
+        truths = [(dp=rand(rng), cp=rand(rng), ae=rand(rng)) for _ in 1:N_diagnostic_observations]
+        ranks = zeros(Int, N_diagnostic_observations, 3)
+        covered = falses(N_diagnostic_observations, 3)
+        _torch.manual_seed(2026)
+        for (i, truth) in enumerate(truths)
+            x = summarise(truth; seed=30_000+i)
+            xt = _torch.tensor(Float32.(x))
+            raw = npe.sample([1000]; x=xt, show_progress_bars=false)
+            draws = PythonCall.pyconvert(Matrix{Float64}, raw.detach().cpu().numpy())
+            all(isfinite, draws) && all(v -> 0 <= v <= 1, draws) || error("Invalid NPE diagnostic draws.")
+            for k in 1:3
+                ranks[i, k] = count(v -> v < values(truth)[k], draws[:, k])
+                covered[i, k] = quantile(draws[:, k], 0.05) <= values(truth)[k] <= quantile(draws[:, k], 0.95)
+            end
+            if i % 10 == 0
+                println("NPE calibration experiments: ", i, "/", N_diagnostic_observations)
+                flush(stdout)
+            end
+        end
+
+        # SBI retains warmup in the sampler object. Request only the final
+        # retained draws per chain; never reshape the already-flattened sample.
+        transformed = nre.posterior_sampler.get_samples(
+            num_samples=div(N_nre_draws, 4), group_by_chain=true)
+        shape = PythonCall.pyconvert(Tuple{Int, Int, Int}, transformed.shape)
+        shape == (4, div(N_nre_draws, 4), 3) || error("Unexpected per-chain shape: $shape")
+        original = nre.theta_transform.inv(_torch.from_numpy(transformed.reshape(-1, 3))).reshape(shape...)
+        chains = PythonCall.pyconvert(Array{Float64, 3}, original.detach().cpu().numpy())
+        flattened = reduce(vcat, [chains[c, :, :] for c in 1:4])
+        isapprox(flattened, nre_samples; atol=1e-6, rtol=1e-6) || error("Chain diagnostics do not match the retained posterior draws.")
+        az = PythonCall.pyimport("arviz")
+        idata = az.from_dict(posterior=Dict("theta" => original.detach().cpu().numpy()))
+        rhat = PythonCall.pyconvert(Vector{Float64}, az.rhat(idata; method="rank")["theta"].values)
+        bulk = PythonCall.pyconvert(Vector{Float64}, az.ess(idata; method="bulk")["theta"].values)
+        tail = PythonCall.pyconvert(Vector{Float64}, az.ess(idata; method="tail")["theta"].values)
+        all(isfinite, vcat(rhat, bulk, tail)) || error("Non-finite MCMC diagnostics.")
+        return Dict("recovery" => recovery, "predictive" => predictive,
+            "sbc_ranks" => ranks, "sbc_covered" => covered, "sbc_truths" => truths,
+            "sbc_draws" => 1000, "chains" => chains, "rhat" => rhat,
+            "ess_bulk" => bulk, "ess_tail" => tail)
+    end
+    inference_checks = if python_ready && run_diagnostics > 0 && snpe_post_py !== nothing && snre_post_py !== nothing
+        nb5_check_inference(snpe_post_py, snre_post_py, snpe_samples, snre_samples)
+    elseif !python_ready && saved_demo !== nothing
+        get(saved_demo, "diagnostics", nothing)
+    else
+        nothing
+    end
+    if inference_checks === nothing
+        md"Run both neural methods before pressing button 6."
+    else
+        let d=inference_checks, labels=("Demand pull", "Cost push", "Expectations")
+            fmt(x) = string(round(x; digits=3))
+            rows = ["| $(labels[k]) | $(fmt(d["rhat"][k])) | $(round(Int, d["ess_bulk"][k])) | $(round(Int, d["ess_tail"][k])) | $(round(Int, sum(d["sbc_covered"][:, k])))/$(N_diagnostic_observations) |" for k in 1:3]
+            recovery_rows = ["| $method: $(labels[k]) | $(fmt(values(θ_true)[k])) | $(fmt(d["recovery"][method]["median"][k])) | [$(fmt(d["recovery"][method]["lower"][k])), $(fmt(d["recovery"][method]["upper"][k]))] |" for method in ("NPE", "NRE") for k in 1:3]
+            Markdown.parse("### Measured diagnostics\n\n| Coefficient | NRE R-hat | Bulk ESS | Tail ESS | NPE 90% interval coverage |\n|---|---:|---:|---:|---:|\n" * join(rows, "\n") *
+                "\n\nCoverage here uses $N_diagnostic_observations new prior-predictive observations. These estimates are noisy; inspect the rank histograms as well. R-hat should be close to one, and ESS can be much lower than the nominal number of draws.\n\n| Recovery at the original observation | Truth | Median | Central 90% interval |\n|---|---:|---:|---|\n" * join(recovery_rows, "\n"))
+        end
+    end
+end
+
+# ╔═╡ f0050000-0000-4000-8000-000000000008
+begin
+    function nb5_predictive_figure(checks, observation, horizon)
+        panels = map(1:2) do channel
+            cols = channel == 1 ? (1:horizon) : (horizon+1:2horizon)
+            panel = Plots.plot(1:horizon, 100 .* observation[cols]; color=:black, lw=2,
+                label="Observation", title=channel == 1 ? "Inflation: posterior prediction" : "Growth: posterior prediction",
+                xlabel="Quarter", ylabel="Rate (%)")
+            for (method, color) in (("NPE", :steelblue), ("NRE", :darkorange))
+                outputs = checks["predictive"][method][:, cols]
+                med = [quantile(outputs[:, k], 0.5) for k in 1:horizon]
+                lo = [quantile(outputs[:, k], 0.1) for k in 1:horizon]
+                hi = [quantile(outputs[:, k], 0.9) for k in 1:horizon]
+                Plots.plot!(panel, 1:horizon, 100 .* med; ribbon=(100 .* (med-lo), 100 .* (hi-med)),
+                    color, fillalpha=0.15, label="$method median / 10th–90th percentiles", lw=1.5)
+            end
+            panel
+        end
+        Plots.plot(panels...; layout=(1, 2), size=(1050, 420), bottom_margin=6Plots.mm, left_margin=4Plots.mm, titlefontsize=11, legendfontsize=7)
+    end
+    if !python_ready && inference_checks !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "predictive.png"))
+    elseif inference_checks !== nothing
+        nb5_predictive_figure(inference_checks, x_obs, T_sim)
+    else
+        md"Posterior-predictive figure appears after diagnostics."
+    end
+end
+
+# ╔═╡ f0050000-0000-4000-8000-000000000009
+begin
+    function nb5_rank_figure(checks)
+        panels = map(1:3) do k
+            p = Plots.histogram(checks["sbc_ranks"][:, k] ./ checks["sbc_draws"]; bins=0:0.2:1,
+                xlims=(0, 1), title=("NPE ranks: demand", "NPE ranks: costs", "NPE ranks: expectations")[k],
+                xlabel="Fraction of draws below truth", ylabel="Experiments", label="", color=:steelblue)
+            Plots.hline!(p, [size(checks["sbc_ranks"], 1)/5]; color=:black, ls=:dash, label="")
+            p
+        end
+        Plots.plot(panels...; layout=(1, 3), size=(1050, 420), bottom_margin=6Plots.mm, titlefontsize=11)
+    end
+    if !python_ready && inference_checks !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "ranks.png"))
+    elseif inference_checks !== nothing
+        nb5_rank_figure(inference_checks)
+    else
+        md"NPE calibration ranks appear after diagnostics."
+    end
+end
+
+# ╔═╡ f0050000-0000-4000-8000-000000000010
+begin
+    function nb5_chain_figure(checks)
+        chains = checks["chains"]
+        panels = map(1:3) do k
+            Plots.plot(permutedims(chains[:, :, k]); title=("NRE chains: demand", "NRE chains: costs", "NRE chains: expectations")[k],
+                xlabel="Retained draw per chain", ylabel="Coefficient", ylims=(0, 1), label=["1" "2" "3" "4"], lw=0.8, alpha=0.7)
+        end
+        Plots.plot(panels...; layout=(1, 3), size=(1050, 420), bottom_margin=6Plots.mm, titlefontsize=11)
+    end
+    if !python_ready && inference_checks !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "chains.png"))
+    elseif inference_checks !== nothing
+        nb5_chain_figure(inference_checks)
+    else
+        md"NRE chain traces appear after diagnostics."
     end
 end
 
@@ -576,7 +775,7 @@ md"""
 
 ### 05.1 — The tolerance trade-off *(no new ABM runs)*
 
-Move `ε` from 0.03 to 0.02 and 0.04. Record the accepted count and describe the three histograms. Is a visually sharper peak based on three draws convincing evidence of precision?
+Move `ε` to half and twice its default value. Record the accepted count and describe the three histograms. Compare with the previous loose tolerance of 0.03. Is a visually sharper peak based on three draws convincing evidence of precision?
 
 **Hint:** with a fixed bank, decreasing the tolerance cannot increase the number of accepted draws. Posterior width need not change monotonically in a tiny sample.
 
@@ -636,7 +835,7 @@ Use `snpe_post_py` conditioned on `x_obs` as a proposal for **100** new draws. S
 # ╟─fe47a484-aeb2-11f1-ab62-c9fb038b7b75
 # ╠═fe47a48e-aeb2-11f1-ba58-7f92563411e7
 # ╠═fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
-# ╟─f0050000-0000-4000-8000-000000000003
+# ╠═f0050000-0000-4000-8000-000000000003
 # ╠═fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
 # ╟─fe47a4c8-aeb2-11f1-b2eb-316721706547
 # ╟─fe47a4de-aeb2-11f1-a8a6-8dd6f18757b5
@@ -652,5 +851,11 @@ Use `snpe_post_py` conditioned on `x_obs` as a proposal for **100** new draws. S
 # ╠═fe47a574-aeb2-11f1-b9d3-15da0a71e396
 # ╠═fe47a57e-aeb2-11f1-b49a-35077214ebb5
 # ╠═fe47a588-aeb2-11f1-8e59-3947a4232ada
+# ╟─f0050000-0000-4000-8000-000000000005
+# ╠═f0050000-0000-4000-8000-000000000006
+# ╠═f0050000-0000-4000-8000-000000000007
+# ╠═f0050000-0000-4000-8000-000000000008
+# ╠═f0050000-0000-4000-8000-000000000009
+# ╠═f0050000-0000-4000-8000-000000000010
 # ╟─fe47a59e-aeb2-11f1-80fd-7da834c0a7bf
 # ╟─fe47a5a6-aeb2-11f1-aac1-bbb9e8e11248

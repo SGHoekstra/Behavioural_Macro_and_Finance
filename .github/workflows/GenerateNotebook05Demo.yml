@@ -20,7 +20,7 @@ concurrency:
 jobs:
   generate-demo:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       JULIA_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'

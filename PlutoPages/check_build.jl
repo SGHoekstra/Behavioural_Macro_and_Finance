@@ -11,7 +11,7 @@ const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
                       "03_shocks_expectations_policy", "04_extensions_canvas",
                       "05_likelihood_free_calibration"]
 const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS; "cheatsheet"]
-const MIN_IMAGES = Dict("05_likelihood_free_calibration" => 4)
+const MIN_IMAGES = Dict("05_likelihood_free_calibration" => 7)
 
 function inspect_state(nb, state)
     bad = String[]

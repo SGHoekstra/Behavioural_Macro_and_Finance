@@ -1,4 +1,4 @@
-# Regenerate the saved small-budget teaching run and its four figures.
+# Regenerate the saved teaching run and its seven figures, including diagnostics.
 # Runs the notebook's actual simulation/inference cells; no separate simulator.
 # Usage: julia --project=pluto_tutorial PlutoPages/tools/generate_notebook05_demo.jl
 # First-time Python/PyTorch installation can take several minutes.
@@ -29,7 +29,7 @@ code = replace(source_code,
 count("PlutoUI.CheckBox(default=false)", code) == 1 ||
     error("Expected exactly one inference-enable checkbox.")
 code = replace(code, "PlutoUI.CheckBox(default=false)" => "PlutoUI.CheckBox(default=true)")
-for name in ("run_xobs", "run_abc", "run_sbi_sims", "run_snpe", "run_snre")
+for name in ("run_xobs", "run_abc", "run_sbi_sims", "run_snpe", "run_snre", "run_diagnostics")
     pattern = Regex("(?m)^@bind " * name * raw" PlutoUI.CounterButton\([^\n]*\)$")
     length(collect(eachmatch(pattern, code))) == 1 ||
         error("Expected exactly one execution control: $name")
@@ -37,7 +37,7 @@ for name in ("run_xobs", "run_abc", "run_sbi_sims", "run_snpe", "run_snre")
 end
 assert_parseable(code, "Transformed notebook")
 if ARGS == ["--check"]
-    println("PASS: generator/notebook syntax, saved-cell removal and all five execution controls.")
+    println("PASS: generator/notebook syntax, saved-cell removal and all six execution controls.")
     exit(0)
 elseif !(isempty(ARGS) || ARGS == ["--render-only"])
     error("Supported options: --check or --render-only.")
@@ -48,7 +48,7 @@ ENV["GKSwstype"] = "100"
 output = joinpath(root, "pluto_tutorial", "notebook05_demo.jld2")
 
 function validate_demo(data)
-    @assert (data["T_sim"], data["N_paths"], data["N_abc"], data["N_sbi"]) == (12, 4, 100, 200)
+    @assert (data["T_sim"], data["N_paths"], data["N_abc"], data["N_sbi"]) == (12, 4, 1000, 2000)
     @assert length(data["x_obs"]) == 24 && all(isfinite, data["x_obs"])
     abc = data["abc_bank"]
     @assert length(abc.parameters) == data["N_abc"] && length(abc.distances) == data["N_abc"]
@@ -57,13 +57,24 @@ function validate_demo(data)
     @assert isempty(bank.failures) "Failed training simulations must be diagnosed, not dropped."
     @assert length(bank.parameters) == data["N_sbi"] && length(bank.outputs) == data["N_sbi"]
     @assert all(x -> length(x) == 24 && all(isfinite, x), bank.outputs)
-    for (name, rows) in (("snpe_samples", 1000), ("snre_samples", 200))
+    for (name, rows) in (("snpe_samples", 5000), ("snre_samples", 2000))
         samples = data[name]
         @assert size(samples) == (rows, 3) && all(isfinite, samples)
         @assert all(v -> 0 <= v <= 1, samples)
     end
     accepted = abc.parameters[abc.distances .< data["ε"]]
     @assert length(accepted) >= 3 "Too few ABC draws at the saved tolerance to render the marginal figure."
+    @assert isapprox(data["ε"], quantile(abc.distances, data["ABC_accept_fraction"]))
+    @assert length(accepted) <= ceil(Int, data["N_abc"] * data["ABC_accept_fraction"])
+    d = data["diagnostics"]
+    @assert size(d["sbc_ranks"]) == (50, 3) && all(v -> 0 <= v <= 1000, d["sbc_ranks"])
+    @assert size(d["sbc_covered"]) == (50, 3)
+    @assert size(d["chains"]) == (4, 500, 3) && all(isfinite, d["chains"])
+    @assert all(v -> 0 <= v <= 1, d["chains"])
+    for method in ("NPE", "NRE")
+        @assert size(d["predictive"][method]) == (50, 24) && all(isfinite, d["predictive"][method])
+    end
+    @assert all(isfinite, vcat(d["rhat"], d["ess_bulk"], d["ess_tail"]))
     return accepted
 end
 
@@ -107,6 +118,9 @@ function render_demo!(data, output, source, root)
             "NPE", :steelblue; density=true),
         "nre.png" => marginal_figure([data["snre_samples"][:, column] for column in 1:3],
             "NRE-B", :darkorange; density=true),
+        "predictive.png" => nb5_predictive_figure(data["diagnostics"], observation, horizon),
+        "ranks.png" => nb5_rank_figure(data["diagnostics"]),
+        "chains.png" => nb5_chain_figure(data["diagnostics"]),
     )
     figure_dir = joinpath(root, "pluto_tutorial", "notebook05_figures")
     mkpath(figure_dir)
@@ -136,22 +150,36 @@ function render_demo!(data, output, source, root)
         current = replace(current, r"(?m)^# v[^\r\n]+$" => header -> header * "\n" * fingerprint; count=1)
     end
     write(source, current)
-    println("Saved ", output, " (", filesize(output), " bytes) and four rendered PNG figures.")
+    println("Saved ", output, " (", filesize(output), " bytes) and seven rendered PNG figures.")
     println("ABC accepted ", length(accepted), "/", data["N_abc"], " at ε=", data["ε"],
         "; NPE/NRE shapes ", size(data["snpe_samples"]), " / ", size(data["snre_samples"]), ".")
+    println("NRE R-hat: ", data["diagnostics"]["rhat"], "; bulk ESS: ", data["diagnostics"]["ess_bulk"],
+        "; tail ESS: ", data["diagnostics"]["ess_tail"])
+    println("NPE 90% coverage across 50 fresh prior-predictive observations: ",
+        vec(mean(data["diagnostics"]["sbc_covered"]; dims=1)))
     flush(stdout)
     return nothing
 end
 
 if ARGS == ["--render-only"]
     import JLD2, Plots
+    using Statistics
+    # Load only the three plotting helpers, without executing the notebook.
+    for id in ("008", "009", "010")
+        cell = match(Regex("(?ms)^# ╔═╡ f0050000-0000-4000-8000-000000000" * id * "\\r?\\n(.*?)(?=^# ╔═╡ |\\z)"), source_code)
+        cell === nothing && error("Diagnostic plot cell $id not found.")
+        expression = Meta.parse(cell.captures[1])
+        functions = filter(item -> item isa Expr && item.head == :function, expression.args)
+        length(functions) == 1 || error("Expected one plotting helper in cell $id.")
+        Core.eval(Main, only(functions))
+    end
     println("Rendering existing numerical results only; no simulations, training or Python setup.")
     data = JLD2.load(output)
     render_demo!(data, output, source, root)
     exit(0)
 end
 
-println("Running the notebook's five stages at ", now(UTC), " UTC.")
+println("Running the notebook's six stages at ", now(UTC), " UTC.")
 flush(stdout)
 try
     # The filename preserves @__DIR__/Pkg.activate/include paths in the notebook.
@@ -189,9 +217,17 @@ metadata = Dict(
     "network_seed" => 0,
     "nre_sampling_seed" => 0,
     "numpy_mcmc_seed" => 0,
+    "nre_warmup_per_chain" => 500,
+    "diagnostic_draw_seed" => 2026,
+    "sbc_simulation_seeds" => collect(30_001:(30_000 + N_diagnostic_observations)),
+    "npe_predictive_seeds" => collect(40_001:(40_000 + N_predictive_draws)),
+    "nre_predictive_seeds" => collect(50_001:(50_000 + N_predictive_draws)),
 )
 data = Dict("metadata" => metadata, "θ_true" => θ_true, "T_sim" => T_sim,
     "N_paths" => N_paths, "N_abc" => N_abc, "N_sbi" => N_sbi, "ε" => ε,
+    "N_npe_draws" => N_npe_draws, "N_nre_draws" => N_nre_draws,
+    "ABC_accept_fraction" => ABC_accept_fraction, "N_diagnostic_observations" => N_diagnostic_observations,
+    "N_predictive_draws" => N_predictive_draws, "diagnostics" => inference_checks,
     "x_obs" => x_obs, "abc_bank" => abc_bank, "sbi_bank" => sbi_bank,
     "snpe_samples" => snpe_samples, "snre_samples" => snre_samples)
 render_demo!(data, output, source, root)

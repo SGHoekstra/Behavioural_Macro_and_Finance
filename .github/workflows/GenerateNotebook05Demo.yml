@@ -1,0 +1,53 @@
+name: Generate notebook 05 teaching results
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generate-notebook05-demo
+  cancel-in-progress: false
+
+jobs:
+  generate-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      JULIA_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GKSwstype: '100'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12.1'
+
+      - name: Cache Julia depot
+        uses: actions/cache@v4
+        with:
+          path: ~/.julia
+          key: ${{ runner.os }}-julia-v1-${{ hashFiles('**/Manifest.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-julia-v1-
+
+      - name: Instantiate the tutorial environment
+        run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Generate actual simulations, posterior samples and figures
+        run: julia --project=pluto_tutorial PlutoPages/tools/generate_notebook05_demo.jl
+
+      - name: Upload teaching results
+        uses: actions/upload-artifact@v4
+        with:
+          name: notebook05-demo
+          if-no-files-found: error
+          path: |
+            pluto_tutorial/notebook05_demo.jld2
+            pluto_tutorial/notebook05_figures/
+            pluto_tutorial/05_likelihood_free_calibration.jl

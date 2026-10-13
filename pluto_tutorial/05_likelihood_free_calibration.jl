@@ -583,6 +583,8 @@ truth, generates **50 fresh posterior-predictive outputs per neural method**, an
 runs **50 prior-predictive NPE calibration experiments**, each with 1,000 conditional
 posterior draws. All new observations use the original four-path observation protocol
 and seeds outside the fitting ranges. This stage does not retrain the networks.
+The predictive plots show pointwise quantile ranges for the two fitted series;
+they are not simultaneous bands or validation of policy effects.
 
 NPE calibration ranks count posterior draws below each simulated true coefficient.
 Uniform ranks are a necessary check for calibrated marginals; 50 experiments have
@@ -713,9 +715,11 @@ end
 begin
     function nb5_rank_figure(checks)
         panels = map(1:3) do k
-            p = Plots.histogram(checks["sbc_ranks"][:, k] ./ checks["sbc_draws"]; bins=0:0.2:1,
+            # Midpoint scaling includes both extreme ranks in the displayed bins.
+            scaled = (checks["sbc_ranks"][:, k] .+ 0.5) ./ (checks["sbc_draws"] + 1)
+            p = Plots.histogram(scaled; bins=0:0.2:1,
                 xlims=(0, 1), title=("NPE ranks: demand", "NPE ranks: costs", "NPE ranks: expectations")[k],
-                xlabel="Fraction of draws below truth", ylabel="Experiments", label="", color=:steelblue)
+                xlabel="Scaled calibration rank", ylabel="Experiments", label="", color=:steelblue)
             Plots.hline!(p, [size(checks["sbc_ranks"], 1)/5]; color=:black, ls=:dash, label="")
             p
         end

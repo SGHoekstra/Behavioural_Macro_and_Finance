@@ -49,6 +49,9 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
+      - name: Verify CANVAS boundary decisions
+        run: julia --project=pluto_tutorial PlutoPages/tools/check_canvas_boundaries.jl
+
       - name: Download existing validated results
         if: ${{ inputs.render_run_id != '' }}
         uses: actions/download-artifact@v4

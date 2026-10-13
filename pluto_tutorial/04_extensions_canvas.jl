@@ -26,7 +26,7 @@ end
 md"""
 # Notebook 04 — Extending the model: CANVAS *(advanced)*
 
-> **Question:** how does a persistent increase in firms' wage norms propagate, and how does the pricing rule affect its transmission?
+> **Question:** how does a persistent increase in firms' wage norms propagate, and how do firms' price and quantity rules affect its transmission?
 
 ### Before running anything
 Predict the first direct effect: household income, firms' wage costs, or both?
@@ -40,7 +40,7 @@ The online page shows saved outputs; run Pluto locally to change the controls.
 - *Sectoral inflation decomposition*
 
 ### Learning goals
-1. Add a model-specific pricing method without replacing the base model's rule.
+1. Add model-specific price and quantity decisions without replacing the base model's method.
 2. Read the local demand/price signals used in CANVAS.
 3. Compare shock effects against each model's own matched baseline.
 4. Distinguish channel-isolation experiments from an additive causal decomposition.
@@ -125,6 +125,19 @@ The firm compares its lagged realised demand with its planned supply and its own
 with the sector average. Excess demand at a relatively low price signals scope to raise
 prices; excess supply at a relatively high price signals a price cut. The other two
 quadrants adjust planned output. At equal demand and supply the adjustment signal is zero.
+
+**Zero-demand and zero-supply states:** the relative-demand signal cannot be used when supply
+is zero, and full pass-through of a zero-demand price signal would set the quote to zero.
+For either boundary, this teaching extension instead targets observed demand (adjusted for
+expected growth) and leaves the demand-price multiplier at one. Zero demand therefore gives
+a zero quantity target; positive demand restarts a firm that previously supplied nothing.
+Cost and expectation effects still apply. This is an explicit behavioural assumption; it
+does not imply firm exit or override BeforeIT's minimum employment rule. Invalid quantities
+or nonpositive price quotes raise an error rather than propagating NaNs.
+
+The comparison with BeforeIT changes **both** pricing and quantity planning: in positive
+price-adjustment quadrants CANVAS retains previous planned supply, while BeforeIT targets
+previous demand. Differences between these models therefore reflect both mechanisms.
 
 This is a behavioural rule based on local information, not a derivation of optimal
 price-setting. The experiment varies its coefficients by hand: it does not estimate
@@ -333,12 +346,12 @@ md"""
 ---
 ## ✔ What you learned
 
-- Model-type dispatch changes the pricing rule while retaining the base model's method.
+- Model-type dispatch changes price and quantity rules while retaining the base model's method.
 - CANVAS combines demand/relative-price signals with cost-push and aggregate expectations.
 - A wage-norm intervention must survive the model's wage-update step.
 - Each treatment needs its own baseline; price-level gaps and inflation-rate differences use different units.
 - Channel-isolation experiments include economy-wide feedbacks, so they are not additive direct-effect estimates.
-- This notebook changes pricing only; the upstream CANVAS example also changes monetary-policy learning.
+- This notebook changes price and quantity decisions; the upstream CANVAS example also changes monetary-policy learning.
 
 ---
 ## Exercises — predict, run, explain, check

@@ -47,6 +47,8 @@ const INCLUDE_FROM = "include(joinpath(@__DIR__, \"canvas_model.jl\"))"
 const INCLUDE_TO   = "include(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"canvas_model.jl\"))"
 const DEMO_FROM = "JLD2.load(joinpath(@__DIR__, \"notebook05_demo.jld2\"))"
 const DEMO_TO = "JLD2.load(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"notebook05_demo.jld2\"))"
+const MODEL_HASH_FROM = "read(joinpath(@__DIR__, \"canvas_model.jl\"))"
+const MODEL_HASH_TO = "read(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"canvas_model.jl\"))"
 const FIGURES_FROM = "joinpath(@__DIR__, \"notebook05_figures\","
 const FIGURES_TO = "joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"notebook05_figures\","
 
@@ -79,7 +81,7 @@ function main()
         isfile(src) || error("missing notebook: $src")
         body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO,
                        INCLUDE_FROM => INCLUDE_TO, DEMO_FROM => DEMO_TO,
-                       FIGURES_FROM => FIGURES_TO)
+                       FIGURES_FROM => FIGURES_TO, MODEL_HASH_FROM => MODEL_HASH_TO)
         @assert occursin("pluto_tutorial", body) "activate rewrite failed for $file"
         write(joinpath(nbdir, file), with_frontmatter(body, title, order))
     end

@@ -20,29 +20,54 @@ function Bit.firms_expectations_and_decisions(model::CANVASModel)
     pi_e    = model.agg.pi_e
     ϕ       = CANVAS_PHI[]
 
+    all(v -> isfinite(v) && 0 <= v <= 1, values(ϕ)) ||
+        throw(DomainError(ϕ, "CANVAS pass-through coefficients must lie in [0,1]."))
+    isfinite(gamma_e) && gamma_e > -1 ||
+        throw(DomainError(gamma_e, "Expected gross output growth must be positive."))
+    isfinite(pi_e) && pi_e > -1 ||
+        throw(DomainError(pi_e, "Expected gross inflation must be positive."))
+    all(q -> isfinite(q) && q >= 0, firms.Q_s_i) &&
+        all(q -> isfinite(q) && q >= 0, firms.Q_d_i) ||
+        throw(DomainError((firms.Q_s_i, firms.Q_d_i), "Supply and demand must be finite and nonnegative."))
+    all(p -> isfinite(p) && p > 0, firms.P_i) &&
+        all(p -> isfinite(p) && p > 0, P_bar_g) ||
+        throw(DomainError(firms.P_i, "Firm and sector prices must be finite and strictly positive."))
+
     I = length(firms.G_i)
-    gamma_d_i = zeros(I)
-    pi_d_i    = zeros(I)
+    Q_s_i     = similar(firms.Q_s_i)
+    demand_multiplier = ones(I)
 
     for i in 1:I
-        if firms.Q_s_i[i] <= firms.Q_d_i[i] && firms.P_i[i] >= P_bar_g[firms.G_i[i]]
-            gamma_d_i[i] = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # expand production
-        elseif firms.Q_s_i[i] <= firms.Q_d_i[i] && firms.P_i[i] < P_bar_g[firms.G_i[i]]
-            pi_d_i[i]    = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # raise price
-        elseif firms.Q_s_i[i] > firms.Q_d_i[i] && firms.P_i[i] >= P_bar_g[firms.G_i[i]]
-            pi_d_i[i]    = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # cut price
+        supply, demand = firms.Q_s_i[i], firms.Q_d_i[i]
+        expensive = firms.P_i[i] >= P_bar_g[firms.G_i[i]]
+        if supply == 0 || demand == 0
+            # Explicit boundary rule: use observed demand as the quantity target.
+            # No sales / no supply provide no usable relative-demand price signal.
+            # Cost and aggregate-expectation pricing channels still apply below.
+            Q_s_i[i] = demand * (1 + gamma_e)
+        elseif (supply <= demand && expensive) || (supply > demand && !expensive)
+            # Algebraically equivalent to supply * (demand / supply), without
+            # a division or the indeterminate product 0 * Inf.
+            Q_s_i[i] = demand * (1 + gamma_e)
         else
-            gamma_d_i[i] = firms.Q_d_i[i] / firms.Q_s_i[i] - 1   # cut production
+            Q_s_i[i] = supply * (1 + gamma_e)
+            # Equivalent to 1 + dp * (demand / supply - 1), but avoids
+            # cancellation to zero for small positive demand and dp == 1.
+            demand_multiplier[i] = (1 - ϕ.dp) + ϕ.dp * (demand / supply)
         end
     end
 
-    Q_s_i  = firms.Q_s_i .* (1 .+ gamma_e) .* (1 .+ gamma_d_i)
     pi_c_i = Bit.cost_push_inflation(firms, model)
 
     new_P_i = firms.P_i .*
               (1 .+ ϕ.cp .* pi_c_i) .*
               (1 .+ ϕ.ae * pi_e)    .*
-              (1 .+ ϕ.dp .* pi_d_i)
+              demand_multiplier
+
+    all(q -> isfinite(q) && q >= 0, Q_s_i) ||
+        throw(DomainError(Q_s_i, "CANVAS produced an invalid quantity target."))
+    all(p -> isfinite(p) && p > 0, new_P_i) ||
+        throw(DomainError(new_P_i, "CANVAS pricing requires finite, strictly positive quotes; inspect the channel signals."))
 
     I_d_i, DM_d_i, N_d_i = Bit.desired_capital_material_employment(firms, Q_s_i)
     Pi_e_i                = firms.Pi_i .* (1 + pi_e) * (1 + gamma_e)
@@ -60,8 +85,9 @@ Build a `CANVASModel` from parameters and initial conditions.
 Use BeforeIT's tuple constructor to assign workers to firms, initialise
 household incomes and balance sheets, and collect the initial observation.
 
-`Q_s_i` is seeded from `Y_i` so the demand-pull ratio `Q_d_i / Q_s_i` is well
-defined in the first quarter instead of dividing by zero.
+`Q_s_i` is seeded from `Y_i`. At zero supply or demand, the decision rule
+targets observed demand and omits the demand-price adjustment. It therefore
+supports inactive firms and restart decisions without dividing by zero.
 """
 function build_canvas_model(p, ic)
     w_act, w_inact = Bit.Workers(p, ic)

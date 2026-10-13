@@ -365,7 +365,10 @@ md"""
 ---
 ## 5 — Monte Carlo fan chart
 
-A fan chart summarises simulated paths **conditional on the same calibration and initial state**.
+A fan chart summarises simulated paths **conditional on the same calibration and aggregate initial conditions**.
+Each path constructs a fresh model, including random initial firm-level allocations.
+Dispersion therefore includes uncertainty about the initial micro allocation as well as
+subsequent stochastic dynamics.
 The published forecasting exercise uses hundreds of paths per reference quarter. Start here
 with **10 paths over eight quarters**, then increase the budget only when you need a more stable
 estimate of the mean or quantiles.
@@ -433,19 +436,21 @@ begin
 
     # Draw bands by their endpoints: a skewed distribution's mean need not lie inside every band.
     p_fan = plot(0:T_fc, nb2_gdp_p10, fillrange=nb2_gdp_p90, fillalpha=0.15,
-                 color=:steelblue, lw=0, label="10–90% of paths",
+                 color=:steelblue, lw=0, label="10th–90th percentiles",
                  title="ABM real GDP forecast ($(n_mc_fc) paths)", xlabel="Quarters ahead",
                  ylabel="Index (2010:Q1 = 100)")
     plot!(p_fan, 0:T_fc, nb2_gdp_p25, fillrange=nb2_gdp_p75, fillalpha=0.25,
-          color=:steelblue, lw=0, label="25–75% of paths")
+          color=:steelblue, lw=0, label="25th–75th percentiles")
     plot!(p_fan, 0:T_fc, nb2_gdp_mean, color=:steelblue, lw=2, label="Ensemble mean")
 end
 
 # ╔═╡ b2afa340-aeb8-11f1-bb47-d38b51bec0f3
 md"""
-**Reading the fan:** the darker band contains the central half of simulated paths at each horizon;
-the lighter band contains the central 80%. The mean is a separate line. Dispersion comes from
-the model's stochastic processes and matching, with parameters fixed.
+**Reading the fan:** the darker band estimates the central 50% range of the model distribution
+at each horizon; the lighter band estimates the central 80% range. Their endpoints are
+interpolated sample quantiles, so a finite ensemble need not place exactly those percentages
+of its paths inside the bands. The mean is a separate line. Dispersion comes from random
+initial micro allocations, subsequent stochastic processes and matching, with parameters fixed.
 
 Longer horizons often have wider bands, but mean reversion, nonlinear dynamics and a small
 Monte Carlo sample can make widths non-monotonic. More paths stabilise estimated quantiles;

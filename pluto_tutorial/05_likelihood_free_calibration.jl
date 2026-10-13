@@ -50,7 +50,7 @@ begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
     import BeforeIT as Bit
-    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates, JLD2
+    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates, JLD2, SHA
 end
 
 
@@ -139,12 +139,14 @@ begin
     demo_matches = (loaded_demo["θ_true"], loaded_demo["T_sim"], loaded_demo["N_paths"],
                     loaded_demo["N_abc"], loaded_demo["N_sbi"]) ==
                    (θ_true, T_sim, N_paths, N_abc, N_sbi)
+    demo_matches &= loaded_demo["metadata"]["canvas_sha256"] ==
+        bytes2hex(SHA.sha256(read(joinpath(@__DIR__, "canvas_model.jl"))))
     saved_demo = demo_matches ? loaded_demo : nothing
     demo_epsilon = demo_matches ? loaded_demo["ε"] : nothing
     demo_accepted = demo_matches ? count(d -> d < demo_epsilon, loaded_demo["abc_bank"].distances) : 0
     demo_matches ?
         md"**Saved demonstration:** $(N_abc) ABC draws, $(N_sbi) neural training pairs, $(N_paths) paths per output. The figures show one small-budget recovery experiment, not a comparison of method accuracy. Enable local execution to replace these results with new runs." :
-        md"The settings differ from the saved demonstration. Enable local execution and run the numbered stages to generate results for these settings; the old figures are hidden."
+        md"The settings or pricing rule differ from the saved demonstration. Enable local execution and run the numbered stages to generate matching results; the old figures are hidden."
 end
 
 # ╔═╡ fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6

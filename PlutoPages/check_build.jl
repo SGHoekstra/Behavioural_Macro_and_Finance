@@ -4,50 +4,53 @@
 # whose first cell throws still exits 0 and produces a site of empty shells.
 # A notebook that really ran embeds rendered output in its .plutostate.
 
+import Pluto
+
 const SITE = joinpath(@__DIR__, "_site", "generated_assets")
 const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
                       "03_shocks_expectations_policy", "04_extensions_canvas"]
+const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS; "cheatsheet"]
+
+function inspect_state(nb, state)
+    bad = String[]
+    results = state["cell_results"]
+    isempty(results) && push!(bad, "$nb: no cell results")
+    has_img = false
+    for id in state["cell_order"]
+        cell = results[id]
+        output = cell["output"]
+        body = get(output, "body", nothing)
+        mime = get(output, "mime", "")
+        has_img |= mime in ("image/png", "image/svg+xml")
+        if cell["errored"]
+            message = body isa AbstractDict ? get(body, "msg", repr(body)) : string(body)
+            push!(bad, "$nb: cell $id errored — $(replace(message, '\n' => ' '))")
+        end
+        if get(cell, "running", false) || get(cell, "queued", false)
+            push!(bad, "$nb: cell $id has not finished")
+        end
+        if body isa AbstractString && occursin("Activating", body)
+            push!(bad, "$nb: Pkg activate banner leaked into cell $id")
+        end
+    end
+    nb in EXPECT_PLOTS && !has_img && push!(bad, "$nb: no rendered image output")
+    bad
+end
 
 function main()
     isdir(SITE) || error("no generated_assets at $SITE — did the build run?")
     states = filter(f -> endswith(f, ".plutostate"), readdir(SITE))
     bad = String[]
-    for nb in EXPECT_PLOTS
-        match = filter(f -> startswith(f, nb), states)
-        if isempty(match)
+    for nb in EXPECT_NOTEBOOKS
+        matching_states = filter(f -> startswith(f, nb), states)
+        if isempty(matching_states)
             push!(bad, "$nb: no .plutostate emitted")
             continue
         end
-        blob = read(joinpath(SITE, first(match)))
-        hasbytes(needle) = findfirst(Vector{UInt8}(needle), blob) !== nothing
-        has_img = hasbytes("image/png") || hasbytes("image/svg+xml")
-        # Any errored cell, not just the missing-environment case. A notebook can
-        # render plots from its Julia half while a later cell dies — notebook 05
-        # shipped a live PythonCall ImportError past an images-only check.
-        errmarks = ["not found in current path", "ImportError", "UndefVarError",
-                    "MethodError", "ArgumentError", "Error message from"]
-        hit = findfirst(m -> hasbytes(m), errmarks)
-        has_err = hit !== nothing
-        if has_err
-            # Quote the surrounding text: the statefile is the only place the
-            # real message exists, and it is not uploaded anywhere.
-            mark = Vector{UInt8}(errmarks[hit])
-            at = findfirst(mark, blob)
-            ctx = String(copy(blob[max(1, first(at) - 40):min(length(blob), last(at) + 220)]))
-            ctx = replace(ctx, r"[^\x20-\x7e]+" => " ")
-            push!(bad, "$nb: a cell errored — $(strip(ctx))")
-        end
-        if !has_img && !has_err
-            # Surface whatever the notebook actually said, so a CI failure is
-            # self-explaining instead of just "no images".
-            txt = String(copy(blob))
-            m = match(r"(?:ArgumentError|UndefVarError|LoadError|Failed to precompile)[^\"]{0,140}", txt)
-            hint = m === nothing ? "no error text found either" : String(m.match)
-            push!(bad, "$nb: no rendered image output — $hint")
-        end
-        # A build path in the output means Pkg's activate banner leaked into
-        # the published page.
-        hasbytes("Activating") && push!(bad, "$nb: Pkg activate banner leaked into the page")
+        # Inspect cell flags, rather than matching error words in source or prose.
+        # Report every failed cell in notebook order so the originating error is visible.
+        state = Pluto.unpack(read(joinpath(SITE, first(matching_states))))
+        append!(bad, inspect_state(nb, state))
     end
     # The lecture PDFs are the other half of the course. PlutoPages drops any
     # extension missing from its passthrough list without warning, so assert.
@@ -78,11 +81,11 @@ function main()
     unique!(bad)
 
     if isempty(bad)
-        println("check_build: $(length(EXPECT_PLOTS)) notebooks rendered output, both lecture PDFs present ✓")
+        println("check_build: $(length(EXPECT_NOTEBOOKS)) notebooks completed, $(length(EXPECT_PLOTS)) rendered plots, both lecture PDFs present ✓")
     else
         println("check_build FAILED:")
         foreach(b -> println("  ", b), bad)
         exit(1)
     end
 end
-main()
+abspath(PROGRAM_FILE) == (@__FILE__) && main()

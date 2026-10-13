@@ -140,7 +140,9 @@ window.pluto_recording_audio_url = undefined;
 <main>
 <h1 id="running-notebook-05-inference-exercises"><a href="#running-notebook-05-inference-exercises" class="anchor"></a>Running Notebook 05 inference exercises</h1>
 <p><strong><a href="https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/05_likelihood_free_calibration/">Read the full notebook online</a>.</strong>
-It displays its explanations, code and exercises in reading mode. This guide explains
+It displays its explanations, code, exercises and <strong>saved figures from an actual
+default run</strong>: the synthetic observation and the ABC, NPE and NRE-B results. The online
+controls do not rerun the experiment. This guide explains
 how to run its simulations and neural training in a local Julia/Python environment,
 generate posterior draws and inspect how well the coefficients are recovered.</p>
 <p><a href="https://github.com/SGHoekstra/Behavioural_Macro_and_Finance/blob/main/pluto_tutorial/05_likelihood_free_calibration.jl">Open the notebook source</a></p>
@@ -170,7 +172,8 @@ julia setup.jl
 julia -t auto -e 'using Pluto; Pluto.run()'
 </code></pre>
 <p>Open <code>05_likelihood_free_calibration.jl</code> in Pluto. Opening the notebook starts in
-<strong>reading mode</strong>: simulation and training stages are disabled. Enabling the local
+<strong>reading mode</strong>: saved results and their plots are available, while new simulation
+and training stages are disabled. Enabling the local
 environment may install Python, PyTorch and <code>sbi</code> on first use.</p>
 <ol>
 <li><strong>Enable the local environment.</strong> Read the observation protocol and small-budget settings.</li>

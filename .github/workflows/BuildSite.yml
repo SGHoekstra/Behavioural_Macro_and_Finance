@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # A cold build executes every notebook, including 08's conda/sbi setup.
+    # A cold build executes the online notebooks; notebook 05 remains local-only.
     timeout-minutes: 90
 
     steps:
@@ -29,7 +29,8 @@ jobs:
       - name: Install Julia
         uses: julia-actions/setup-julia@v2
         with:
-          version: '1.12'
+          # Match the tutorial Manifest's Julia version for reproducible exports.
+          version: '1.12.1'
 
       # Pluto's notebook state cache: keyed on the tutorial Manifest, so the
       # expensive BeforeIT runs are reused until dependencies change.

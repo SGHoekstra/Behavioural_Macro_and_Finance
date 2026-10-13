@@ -483,7 +483,7 @@ begin
     plot!(nb3_p2, 0:20, nb3_m_custom.data.real_gdp, label = "Custom", lw = 2, color = :tomato, ls = :dash)
 
     nb3_p3 = plot(
-        nb3_m_default.data.nominal_gdp ./ 0:20, nb3_m_default.data.real_gdp, label = "Default", lw = 2, color = :steelblue,
+        0:20, nb3_m_default.data.nominal_gdp ./ nb3_m_default.data.real_gdp, label = "Default", lw = 2, color = :steelblue,
         title = "GDP deflator", xlabel = "Quarter",
     )
     plot!(nb3_p3, 0:20, nb3_m_custom.data.nominal_gdp ./ nb3_m_custom.data.real_gdp, label = "Custom", lw = 2, color = :tomato, ls = :dash)

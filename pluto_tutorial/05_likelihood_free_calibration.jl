@@ -388,7 +388,9 @@ begin
     if sbi_bank === nothing
         md"Generate the observation, then press button 3."
     elseif _n_failed > 0
-        md"Training blocked: **$(_n_failed)/$(N_sbi)** simulations failed. First errors: $(join(first(sbi_bank.failures, min(3, _n_failed)), " | "))."
+        let messages=join(first(sbi_bank.failures, min(3, _n_failed)), " | ")
+            md"Training blocked: **$(_n_failed)/$(N_sbi)** simulations failed. First errors: $(messages)."
+        end
     elseif !_sbi_ready
         md"Use at least 50 valid examples for this demonstration. A small training set is not a posterior-accuracy guarantee."
     else

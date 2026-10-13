@@ -8,8 +8,8 @@ layout: "md.jlmd"
 # Notebook 05 — Likelihood-free calibration
 
 **Read this guide online; run the full notebook locally.** Its simulations and neural
-training require a local Julia/Python environment. The guide does not display fitted
-posteriors or assert that a method recovered the coefficients.
+training require a local Julia/Python environment. Use the staged local run to
+generate posterior draws and inspect how well the coefficients are recovered.
 
 [Open the notebook source](https://github.com/SGHoekstra/Behavioural_Macro_and_Finance/blob/main/pluto_tutorial/05_likelihood_free_calibration.jl)
 

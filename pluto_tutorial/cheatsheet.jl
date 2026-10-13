@@ -228,7 +228,7 @@ This rule expects the last GDP **level**, hence zero GDP growth, and the last in
 # as the forecast you will compare. At least three observations are needed.
 y_lag = y_hist[1:end-1]
 y_now = y_hist[2:end]
-intercept, persistence = hcat(ones(length(y_lag)),y_lag) \\ y_now
+intercept, persistence = hcat(ones(length(y_lag)),y_lag) \ y_now
 forecast = Vector{Float64}(undef,T+1)
 forecast[1] = y_hist[end]    # observed starting value, not an estimated forecast
 for h in 1:T

@@ -28,14 +28,14 @@ begin
     Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
     import BeforeIT as Bit
     import Random
-    using Plots, StatsPlots, PlutoUI, DataFrames, Statistics, LinearAlgebra
+    using Plots, StatsPlots, PlutoUI, HypertextLiteral, DataFrames, Statistics, LinearAlgebra
 end
 
 # ╔═╡ afeb8448-aeaf-11f1-af47-c739f5f21ffc
 md"""
 # Notebook 01 — Meet the model
 
-> **Question this notebook answers:** what does the Austrian macro economy do over the next five years according to the Poledna et al. (2019) agent-based model — and what is actually inside the box?
+> **Question this notebook answers:** what does the Austrian macro economy do over the next five years according to the Poledna et al. (2023) agent-based model — and what is actually inside the box?
 
 We run the model first and look at its output, then open it up: who the agents are, how they trade through the input–output network, what happens in a quarter, and whether the accounting closes.
 
@@ -55,7 +55,9 @@ After this notebook you will be able to:
 4. Trace the per-quarter event sequence by stepping manually.
 5. Verify the GDP accounting identity — the stock-flow consistency check.
 
-Forecasting and Monte Carlo ensembles come in Notebook 02.
+**How to work through it:** first predict a direction of change, then run a short simulation, inspect the relevant quantities, and explain the mechanism. The online version has saved outputs; use local Pluto to change inputs. Start with the default 20-quarter run and leave longer simulations until the end.
+
+A simulated path conditional on a 2010 calibration is not an assessment of forecasting accuracy. Forecast comparisons and Monte Carlo ensembles come in Notebook 02.
 """
 
 # ╔═╡ afeb8484-aeaf-11f1-a594-79cbf074b789
@@ -63,7 +65,7 @@ md"""
 ---
 ## 1 — Load the Austria 2010:Q1 calibration
 
-The model ships with a fully pre-calibrated parametrisation of the Austrian economy at the start of Q1 2010. All 50+ parameters are read directly from Eurostat national accounts — no free parameters to tune.
+The model ships with a fully pre-calibrated parametrisation of the Austrian economy at the start of Q1 2010. The bundled parameters and initial conditions are calibrated using national accounts and additional statistical inputs. The calibration also involves behavioural specifications and estimated relationships: loading the bundle does not remove modelling assumptions or establish its predictive accuracy.
 
 A few headline values from `Bit.AUSTRIA2010Q1`: VAT $\tau^{VAT}$ = 15.29%, MPC $\psi$ = 90.97%, corporate tax $\tau^{FIRM}$ = 7.70%. Read any of them off `model.prop` directly.
 """
@@ -82,7 +84,7 @@ md"""
 
 `Bit.Model` builds every agent and wires up the full stock-flow-consistent balance sheet structure.
 
-Note the scale. Lecture 2 quotes ~9.9 million agents for the *actual* Austrian economy, but `Bit.AUSTRIA2010Q1` ships a **1:1000 scaled** version — about 10,000 agents — so a run takes seconds rather than hours. Every ratio and share is preserved; only the head counts are divided through. Part 2 below reproduces the full table.
+Note the scale. Lecture 2 quotes ~9.9 million agents for the *actual* Austrian economy, but `Bit.AUSTRIA2010Q1` ships a **1:1000 scaled** version — about 10,000 agents — so a run takes seconds rather than hours. Simulated agents represent larger populations. Aggregates and shares target the calibration, but integer rounding and a smaller economy can change finite-population variation and network outcomes. These are synthetic agents, not individual administrative records. Part 2 below reports the simulated counts.
 """
 
 # ╔═╡ afeb84a4-aeaf-11f1-97e3-4b0cd421f7c8
@@ -113,7 +115,7 @@ Each call to `Bit.step!` advances the model by **one quarter**, running the full
 
 | Step | What happens |
 |------|-------------|
-| (i) | Agents OLS-update their AR(1) inflation and growth forecasts |
+| (i) | Growth and inflation expectations are updated using fitted time-series rules |
 | (ii) | Exogenous shocks drawn from 5 AR(1) processes |
 | (iii) | Credit and labour markets solved (search-and-matching) |
 | (iv) | Goods markets solved (search-and-matching) |
@@ -127,7 +129,7 @@ begin
     model_demo = Bit.Model(nb1_p, nb1_ic)
     Bit.step!(model_demo; parallel = true)   # one quarter
     Bit.collect_data!(model_demo)            # save the time series
-    "Stepped one quarter. GDP = $(round(model_demo.data.real_gdp[1], digits=2))"
+    "Stepped one quarter. GDP = $(round(model_demo.data.real_gdp[end], digits=2))"
 end
 
 # ╔═╡ afeb84e8-aeaf-11f1-b1d9-d1f28ffd0896
@@ -137,32 +139,42 @@ md"""
 
 `Bit.run!` is the convenient wrapper that calls `step!` + `collect_data!` in a loop.
 
-Use the slider below to set the horizon, then press **Run** to simulate.
-
-> ⚠️ Each run takes ~10–30 seconds depending on your machine. Do not move the slider during a run.
+The default path runs when this notebook opens. Change the horizon and seed together, then press **Apply simulation settings**. Unconfirmed slider changes do not launch another simulation. **Repeat simulation** reruns the confirmed configuration; a fixed seed should reproduce the same path in the same environment. Runtime depends on your machine and horizon.
 """
 
 # ╔═╡ afeb84e8-aeaf-11f1-9728-3741750f455d
-@bind T_horizon PlutoUI.Slider(4:4:40, default=20, show_value=true)
+@bind nb1_controls PlutoUI.confirm(
+    PlutoUI.combine() do Child
+        @htl("""<div>
+        <p>Horizon (quarters): $(Child("horizon", PlutoUI.Slider(4:4:40, default=20, show_value=true)))</p>
+        <p>Random seed: $(Child("seed", PlutoUI.Slider(1:100, default=42, show_value=true)))</p>
+        </div>""")
+    end;
+    label="Apply simulation settings",
+)
 
 # ╔═╡ afeb84f2-aeaf-11f1-8ebc-e376ec4c3867
-@bind rng_seed PlutoUI.Slider(1:100, default=42, show_value=true)
+begin
+    T_horizon = nb1_controls.horizon
+    rng_seed = nb1_controls.seed
+    nothing
+end
 
 # ╔═╡ afeb84fc-aeaf-11f1-b9dc-679d86fd21dc
-@bind run_single PlutoUI.Button("▶ Run simulation")
+@bind run_single PlutoUI.Button("▶ Repeat simulation")
 
 # ╔═╡ afeb84fc-aeaf-11f1-84a7-cfdac3cd721e
-md"""
-Horizon: **$(T_horizon) quarters** ($(T_horizon ÷ 4) years)  |  RNG seed: **$(rng_seed)**
-"""
+Markdown.parse("Confirmed horizon: **$(T_horizon) quarters** ($(T_horizon ÷ 4) years). Random seed: **$(rng_seed)**. The time series includes the initial observation at quarter 0.")
 
 # ╔═╡ afeb8504-aeaf-11f1-9f11-5b270d89e616
 begin
-    run_single   # re-runs only when button is pressed
+    run_single
     Random.seed!(rng_seed)
     _m = Bit.Model(nb1_p, nb1_ic)
-    Bit.run!(_m, T_horizon)
-    _m
+    nb1_initial_model = deepcopy(_m)  # preserve the same population before mutation
+    Bit.run!(_m, T_horizon; parallel=false)
+    (quarters=T_horizon, seed=rng_seed,
+     initial_gdp=_m.data.real_gdp[1], final_gdp=_m.data.real_gdp[end])
 end
 
 # ╔═╡ afeb8510-aeaf-11f1-8aad-6fb0d75564c5
@@ -170,7 +182,7 @@ md"""
 ---
 ## 5 — Plot the results
 
-`Bit.plot_data` knows how to plot any of the tracked time series. The 9-panel dashboard below shows the same quantities reported in Poledna et al. (2019) Table 4.
+`Bit.plot_data` knows how to plot any of the tracked time series. The 9-panel dashboard below shows the same quantities reported in Poledna et al. (2023) Table 4.
 """
 
 # ╔═╡ afeb851a-aeaf-11f1-b0c4-93231ab9e333
@@ -194,11 +206,7 @@ end
 
 # ╔═╡ afeb851a-aeaf-11f1-9b87-8b6ec0fc646c
 md"""
-Try different seeds (slider above) and click **Run** again. Notice that:
-- The **trend** is similar across seeds — driven by the five exogenous AR(1) processes.
-- The **fluctuations** differ — driven by agent-level stochasticity in search-and-matching.
-
-This is what Monte Carlo simulation quantifies.
+**Before changing the seed:** which quantities do you expect to be most variable? Then apply a second seed and compare. Both aggregate innovations and agent-level random draws can change across seeds, and endogenous feedback can alter the path. A single seed cannot separate those sources of variation or identify an economic effect. Monte Carlo simulation quantifies variation under the specified model; it does not capture every source of model uncertainty.
 """
 
 # ╔═╡ aff4f0e8-aeaf-11f1-a709-bb4dd6a9f8cd
@@ -215,16 +223,16 @@ md"""
 ---
 ## 6 — Who are the agents?
 
-The Lecture 2 table "How big is the model?" reports ~9.9 million agents for Austria 2010:Q4 — the real economy. `Bit.AUSTRIA2010Q1` is scaled **1:1000** so that a run finishes in seconds, so expect counts around a thousandth of the lecture's. Shares and ratios are unaffected.
+The Lecture 2 table "How big is the model?" reports ~9.9 million agents for Austria 2010:Q4 — the real economy. `Bit.AUSTRIA2010Q1` is scaled **1:1000** so that a run finishes in seconds, so expect counts around a thousandth of the lecture's. Counts describe the scaled calibration; small rounding differences are possible.
 """
 
 # ╔═╡ aff4f136-aeaf-11f1-92b0-6ff1409c3868
 begin
     p = nb1_model.prop
     agent_table = DataFrame(
-        "Agent type"        => ["Economically active persons",
+        "Agent type"        => ["Active persons (including investor households)",
                                 "Inactive persons",
-                                "Firms / investors",
+                                "Domestic firms",
                                 "Government entities",
                                 "Foreign consumers",
                                 "Foreign firms (imports) = sectors"],
@@ -242,7 +250,7 @@ One label needs care: `prop.G` is the number of production **sectors** (62, the 
 The four household types from Lecture 2:
 - **Employed** (`nb1_model.w_act`) — labour supplied to a specific sector.
 - **Unemployed** — subset of `nb1_model.w_act` with no current job.
-- **Investors** — one per firm, receive dividends $\theta^{DIV}(1-\tau^{FIRM})\Pi_i$.
+- **Investors** — firm owners and the bank owner, receive dividends.
 - **Inactive** (`nb1_model.w_inact`) — outside the labour force, receive social transfers.
 """
 
@@ -267,16 +275,16 @@ md"""
 ---
 ## 7 — Household heterogeneity
 
-Lecture 2 identifies **four household types**. BeforeIT stores them in two structs:
+Lecture 2 identifies **four household types**. Regular workers are stored in worker arrays; investor households are attached to firms and the bank:
 
 | Type | Struct | Description |
 |---|---|---|
 | Employed workers | `nb1_model.w_act` (`O_h > 0`) | Earn wages, pay income tax, buy consumption goods |
-| Unemployed workers | `nb1_model.w_act` (`O_h = 0`) | Receive unemployment benefits $(θ^{UB} w)$, job search |
+| Unemployed workers | `nb1_model.w_act` (`O_h = 0`) | Receive unemployment benefits $\theta^{UB}w$, job search |
 | Inactive persons | `nb1_model.w_inact` | Out of labour force, receive social transfers |
-| Capitalist investors | `nb1_model.firms` (one per firm) | Own a firm, receive dividends $(θ^{DIV}(1-τ^{FIRM})Π_i)$ |
+| Investor households | `nb1_model.firms` and `nb1_model.bank` | Own a firm or the bank, receive dividends $\theta^{DIV}(1-\tau^{FIRM})\Pi_i$ |
 
-**Employed + unemployed** live in `w_act`; the `O_h` field records which firm employs each worker (0 = unemployed). Investors own firms and are counted in `prop.I`; they are tracked via `nb1_model.firms` rather than as household agents with individual deposit records.
+**Employed + unemployed** live in `w_act`; the `O_h` field records which firm employs each worker (0 = unemployed). There are `prop.I` firm-owner households and one bank-owner household. Their incomes and deposits are attached to the firm and bank objects. Therefore `length(w_act.O_h) + prop.I + 1 == prop.H_act`; do not count firm owners twice or omit the bank owner when computing household shares.
 """
 
 # ╔═╡ aff4f1b8-aeaf-11f1-a488-d966727fbdf8
@@ -285,13 +293,13 @@ begin
     O_h_regular    = nb1_model.w_act.O_h
     n_employed_reg = sum(O_h_regular .> 0)
     n_unemployed   = sum(O_h_regular .== 0)
-    n_investors    = nb1_model.prop.I
+    n_investors    = nb1_model.prop.I + 1
     n_inactive     = nb1_model.prop.H_inact
     n_total        = nb1_model.prop.H_act + n_inactive
 
     het_table = DataFrame(
         "Household type"      => ["Employed workers", "Unemployed workers",
-                                   "Capitalist investors (nb1_model.firms)", "Inactive persons"],
+                                   "Investor households (firms + bank)", "Inactive persons"],
         "Count"               => [n_employed_reg, n_unemployed, n_investors, n_inactive],
         "Share of adults (%)" => round.([n_employed_reg, n_unemployed, n_investors, n_inactive]
                                          ./ n_total .* 100, digits=1),
@@ -301,36 +309,39 @@ end
 
 # ╔═╡ aff4f1cc-aeaf-11f1-9e1c-51f7847655cf
 begin
-    # Deposits D_h by household type (investors tracked via nb1_model.firms, not as household agents)
-    D_employed   = nb1_model.w_act.D_h[O_h_regular .> 0]
-    D_unemployed = nb1_model.w_act.D_h[O_h_regular .== 0]
-    D_inactive   = nb1_model.w_inact.D_h
-
-    p_wealth = plot(layout=(1,3), size=(900,320),
+    p_wealth = plot(layout=(2,3), size=(900,550),
                     left_margin=4Plots.mm, bottom_margin=4Plots.mm)
-    for (sp, (d, ttl, clr)) in enumerate([
-            (D_employed,   "Employed",   :steelblue),
-            (D_unemployed, "Unemployed", :crimson),
-            (D_inactive,   "Inactive",   :mediumseagreen),
-        ])
-        mn = round(mean(d), sigdigits=4)
-        histogram!(p_wealth, d, subplot=sp, bins=40, color=clr, alpha=0.7, label="",
-                   title="$(ttl)  n=$(length(d))  mean=$(mn)",
-                   xlabel="Deposits D_h (€)", ylabel="Count",
-                   titlefontsize=8)
+    for (row, (snapshot, stage)) in enumerate([
+            (nb1_initial_model, "Initial population"), (_m, "After simulation")])
+        occupied = snapshot.w_act.O_h .> 0
+        groups = [(snapshot.w_act.D_h[occupied], "Employed", :steelblue),
+                  (snapshot.w_act.D_h[.!occupied], "Unemployed", :crimson),
+                  (snapshot.w_inact.D_h, "Inactive", :mediumseagreen)]
+        for (column, (deposits, group, colour)) in enumerate(groups)
+            subplot_id = (row - 1) * 3 + column
+            if !isempty(deposits)
+                histogram!(p_wealth, deposits; subplot=subplot_id, bins=30,
+                    color=colour, alpha=0.7, label="",
+                    title="$stage: $group (n=$(length(deposits)))",
+                    xlabel="Deposits per simulated agent (model units)",
+                    ylabel="Count", titlefontsize=8)
+            else
+                plot!(p_wealth; subplot=subplot_id, title="$stage: $group (empty)")
+            end
+        end
     end
     p_wealth
 end
 
 # ╔═╡ aff4f1ea-aeaf-11f1-80ab-8b458c9d217a
 md"""
-**Why do unemployed and inactive workers show near-zero variance?**
+**Read the two rows as a comparison of the same simulated population.** The top row is copied before the run; the bottom row shows the population after the confirmed horizon. Membership can change through employment transitions, so these are group distributions rather than a panel comparison of fixed individuals.
 
-At $t=0$, BeforeIT initialises household deposits from **aggregate national accounts data** — only the sector total is known, so it is divided equally across all agents of the same type. That is why every unemployed worker starts with exactly the same $D_h$, and every inactive person starts with exactly the same $D_h$ (a different level, but still identical within the group). The employed histogram looks wider because employment-type variation maps onto wage variation, which produces some spread even at initialisation.
+Initial deposits are assigned using the aggregate balance-sheet calibration and model incomes. Equal assigned incomes can create narrow distributions within a group. Such distributions reflect initialisation assumptions, not observed microdata on household wealth. Simulation then changes deposits and employment status.
 
-The narrow distributions are **technically correct, not a bug** — they reflect the data-based initialisation that lets the model start at calibrated aggregate stocks without a burn-in period. Run the model for a few quarters and re-run this cell to see heterogeneity build up as workers change jobs, accumulate savings, or cycle through unemployment.
+Investor households are excluded from these three panels; their deposits are attached to firms and the bank. Do not draw conclusions about their relative wealth from this figure. Income and wealth affect consumption budgets, but a heterogeneous deposit distribution does not itself imply heterogeneous marginal propensities to consume.
 
-**Key observation:** Investor-capitalists (who receive dividends $\theta^{DIV}(1-\tau^{FIRM})\Pi_i$) hold significantly more deposits than regular employed workers. Unemployed workers hold the least, reflecting lost wage income partially offset by unemployment benefits $\theta^{UB} w_i$. These wealth heterogeneities feed into different **marginal propensities to consume**, driving aggregate demand dynamics across the business cycle.
+**Check your interpretation:** what would you need to compare these distributions with household survey or register data? Consider population weights, units, household definitions and the reference date.
 """
 
 # ╔═╡ aff4f208-aeaf-11f1-87d7-991503c2e629
@@ -338,9 +349,9 @@ md"""
 ---
 ## 8 — The input–output production network
 
-Firms buy intermediate inputs from other sectors. The technology matrix $a_{sg}$ gives the share of industry $s$'s output that goes as intermediate input to product type $g$.
+Firms buy intermediate inputs from other sectors. The entry $a_{sg}$ describes input purchases from supplier sector $s$ within buyer sector $g$'s intermediate-input bundle. Columns are normalised over suppliers; it is not the fraction of supplier $s$'s output sold to buyer $g$.
 
-This is the heatmap shown in Lecture 2 (Figure: "Intermediate consumption between 19 industries"). We plot the full 64-sector version here.
+This is the heatmap shown in Lecture 2 (Figure: "Intermediate consumption between 19 industries"). We plot the full matrix available in this calibration (62 sectors).
 """
 
 # ╔═╡ aff4f21c-aeaf-11f1-a686-3dff9ab0119a
@@ -361,9 +372,9 @@ end
 
 # ╔═╡ aff4f230-aeaf-11f1-b61d-2ddcec739827
 md"""
-**Reading the heatmap:** a bright cell at row $s$, column $g$ means sector $s$ supplies a large fraction of its output as intermediate input to the production of product type $g$.
+**Reading the heatmap:** a bright cell at row $s$, column $g$ means supplier $s$ has a large weight in buyer $g$'s input bundle.
 
-The diagonal entries represent within-sector intermediate use (e.g., agriculture buying agricultural products). Off-diagonal bright cells reveal key supply-chain dependencies — a failure in a bright-cell upstream sector cascades to all sectors that buy from it (the bankruptcy cascade from Lecture 2).
+The diagonal entries represent within-sector intermediate use (e.g., agriculture buying agricultural products). Off-diagonal bright cells reveal key supply-chain dependencies — an upstream disruption can affect its customers. The size and persistence of that effect also depend on quantities, substitution restrictions, inventories, financing and market matching; a bright cell alone does not establish a bankruptcy cascade.
 """
 
 # ╔═╡ aff4f244-aeaf-11f1-be85-b54d53a0e1de
@@ -456,7 +467,7 @@ BeforeIT computes GDP via the **production approach** internally, but also track
 """
 
 # ╔═╡ aff4f2e2-aeaf-11f1-af1a-3d0e4629a7da
-@bind T_sfc PlutoUI.Slider(4:4:40, default=20, show_value=true)
+@bind T_sfc PlutoUI.confirm(PlutoUI.Slider(4:4:40, default=20, show_value=true); label="Apply accounting-check horizon")
 
 # ╔═╡ aff4f2f8-aeaf-11f1-a746-d3ff9313a433
 @bind run_sfc PlutoUI.Button("▶ Run SFC check")
@@ -482,7 +493,7 @@ begin
     rel_err  = max_err / mean(Y_prod) * 100
 
     DataFrame(
-        "Stat"  => ["Max |residual| (€ real)", "Max relative error (%)"],
+        "Stat"  => ["Max |residual| (model units)", "Max relative error (%)"],
         "Value" => [round(max_err, sigdigits=4), round(rel_err, sigdigits=4)],
     )
 end
@@ -493,7 +504,7 @@ begin
     plot(
         1:T_sfc+1, Y_prod,
         label = "GDP (production)", lw = 2, color = :steelblue,
-        xlabel = "Quarter", ylabel = "Real GDP (index)",
+        xlabel = "Quarter", ylabel = "Real GDP (model units)",
         title  = "Expenditure vs production GDP ($(T_sfc) quarters)",
     )
     plot!(1:T_sfc+1, Y_exp, label = "C + I + G + X − M", lw = 2, ls = :dash, color = :crimson)
@@ -510,7 +521,7 @@ Note: small floating-point deviations ($<0.01\%$) are expected from rounding in 
 
 # ╔═╡ aff4f366-aeaf-11f1-a44f-111e45b03e5d
 md"""
-### 5b — Multi-identity SFC check
+### 11b — Check identities without cancelling errors
 
 BeforeIT exposes a `get_accounting_identities` utility that checks three simultaneous accounting identities. Let's run it and verify all pass.
 """
@@ -518,36 +529,34 @@ BeforeIT exposes a `get_accounting_identities` utility that checks three simulta
 # ╔═╡ aff4f37a-aeaf-11f1-8caf-47f6c425a5d1
 begin
     run_sfc
-
-    # BeforeIT's built-in accounting identity checker
-    inc_prod, gdp_exp_nom, gdp_exp_real = Bit.get_accounting_identities(_m_sfc.data)
-    cb_bal,   bank_bal                  = Bit.get_accounting_identity_banks(_m_sfc)
-
+    data_sfc = _m_sfc.data
+    income_residual = data_sfc.nominal_gva .- data_sfc.compensation_employees .-
+                      data_sfc.operating_surplus .- data_sfc.taxes_production
+    nominal_residual = data_sfc.nominal_gdp .- data_sfc.nominal_household_consumption .-
+                       data_sfc.nominal_government_consumption .- data_sfc.nominal_capitalformation .-
+                       data_sfc.nominal_exports .+ data_sfc.nominal_imports
+    real_residual = data_sfc.real_gdp .- data_sfc.real_household_consumption .-
+                    data_sfc.real_government_consumption .- data_sfc.real_capitalformation .-
+                    data_sfc.real_exports .+ data_sfc.real_imports
+    cb_bal, bank_bal = Bit.get_accounting_identity_banks(_m_sfc)
+    checked_residuals = [maximum(abs.(income_residual)), maximum(abs.(nominal_residual)),
+                         maximum(abs.(real_residual)), abs(cb_bal), abs(bank_bal)]
     sfc_table = DataFrame(
-        "Identity" => [
-            "Income = Production  (nominal GVA identity)",
-            "GDP = Expenditure    (nominal)",
-            "GDP = Expenditure    (real)",
-            "CB balance sheet closure",
-            "Bank balance sheet closure",
-        ],
-        "Cumulative residual" => round.([inc_prod, gdp_exp_nom, gdp_exp_real, cb_bal, bank_bal], sigdigits=4),
-        "Pass (< 1e-3)"      => [abs(inc_prod) < 1e-3, abs(gdp_exp_nom) < 1e-3,
-                                  abs(gdp_exp_real) < 1e-3,
-                                  abs(cb_bal) < 1e-3, abs(bank_bal) < 1e-3],
+        "Identity" => ["Income = production (nominal GVA)", "GDP = expenditure (nominal)",
+                       "GDP = expenditure (real)", "Central bank balance sheet", "Bank balance sheet"],
+        "Scope" => ["Maximum over recorded quarters", "Maximum over recorded quarters",
+                    "Maximum over recorded quarters", "Final model state", "Final model state"],
+        "Absolute residual" => round.(checked_residuals, sigdigits=4),
+        "Below 1e-3 model units" => checked_residuals .< 1e-3,
     )
     sfc_table
 end
 
 # ╔═╡ aff4f38e-aeaf-11f1-872d-23a12a43a7d4
 md"""
-Five identities, all passing. Together they confirm the full **stock-flow consistency** of the model:
-1. **Income identity:** GVA = wages + profits + net taxes on production.
-2–3. **Expenditure identity (nominal & real):** GDP measured from production = C + I + G + X − M.
-4. **Central bank closure:** CB equity + foreign deposits = govt bonds + commercial bank residual.
-5. **Bank balance sheet:** firm deposits + household deposits + bank equity = firm loans + D_k.
+The first three rows use the **maximum absolute residual across recorded quarters**. Summing signed residuals could conceal offsetting errors. The bank checks concern the final model state, not every previous quarter.
 
-This is a more comprehensive check than a single identity test. All residuals accumulate over the full simulation — so near-zero values confirm the accounting holds quarter by quarter, not just on average.
+The tolerance is stated in model units; for comparisons across calibrations, inspect residuals relative to the size of the relevant flows too. Passing these identities checks accounting consistency. It does not validate behavioural rules, forecasts or policy counterfactuals.
 """
 
 # ╔═╡ aff4f3a2-aeaf-11f1-b85d-a1b07c15d995
@@ -555,7 +564,7 @@ md"""
 ---
 ## 12 — The firm size distribution
 
-Lecture 2 notes that firm sizes follow a **power law**, calibrated from Eurostat business demography. Let's check:
+Inspect the calibrated firm-size distribution. A histogram helps describe heterogeneity, but does not test whether its tail follows a power law:
 """
 
 # ╔═╡ aff4f3b8-aeaf-11f1-94b1-47bb0dc99191
@@ -576,7 +585,7 @@ end
 
 # ╔═╡ aff4f3ca-aeaf-11f1-b071-3b026390f775
 md"""
-The right-skewed distribution on a log scale is the hallmark of a **power law** (Zipf-like). Most firms are small; a few are very large. This is consistent with real data and generates the heterogeneous demand/supply dynamics in the goods market.
+A concentration of small firms and a few large firms is compatible with several distributions. A power-law claim requires a tail threshold, an estimated exponent and comparisons with alternatives such as a lognormal. Here the figure describes the initial calibration; it is not evidence that the model endogenously generates the empirical firm-size distribution.
 """
 
 # ╔═╡ aff4f3de-aeaf-11f1-bd1d-ff8061c897e7
@@ -606,7 +615,26 @@ What is inside it:
 
 **Exercise 01.2** — Compute the **out-degree** of each sector in the I-O matrix: the number of sectors it supplies to (`sum(a_sg .> threshold, dims=2)`). Plot as a bar chart. Which sector is the most interconnected supplier?
 
-**Exercise 01.3** *(stretch)* — The bankruptcy cascade argument says that a shock to a **high out-degree** sector is especially damaging. Based on your answer above, which sector would be the most dangerous to shock?
+**Exercise 01.3** *(stretch)* — Form a hypothesis about which supplier disruption would be most damaging. Explain why out-degree might be informative and why it could mislead. In Notebook 03, distinguish a model intervention from empirical evidence about a real sector.
+
+### Starter code and checks
+Use new variable names in your exercise cells so Pluto does not see duplicate definitions.
+
+```julia
+ex01_sorted = sort(leontief, "ᾱ (labour prod.)"; rev=true)
+ex01_threshold = 0.01  # a 1% input-bundle share, not a universal network definition
+ex01_links = nb1_a_sg .> ex01_threshold
+ex01_outdegree = vec(sum(ex01_links; dims=2))
+ex01_indegree = vec(sum(ex01_links; dims=1))
+```
+
+**Check 1:** both degree vectors have one entry per sector. Summing all out-degrees must equal summing all in-degrees: both count the same edges.
+
+**Check 2:** repeat at thresholds 0.001, 0.01 and 0.05. Does the most connected supplier change? State the threshold when reporting a ranking.
+
+**Check 3:** compare degree with weighted column shares, sector size and initial employment. Explain why a network count is not a welfare measure.
+
+**Before Notebook 02:** identify the initial observation at index 1 (quarter 0), the measurement units, and the difference between an accounting check and a forecast evaluation.
 """
 
 # ╔═╡ Cell order:

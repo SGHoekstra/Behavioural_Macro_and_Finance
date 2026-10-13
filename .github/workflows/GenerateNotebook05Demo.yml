@@ -2,9 +2,16 @@ name: Generate notebook 05 teaching results
 
 on:
   workflow_dispatch:
+    inputs:
+      render_run_id:
+        description: 'Redraw validated results from this workflow run; leave empty for a new full run'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: generate-notebook05-demo
@@ -42,8 +49,26 @@ jobs:
       - name: Instantiate the tutorial environment
         run: julia --project=pluto_tutorial -e 'using Pkg; Pkg.instantiate()'
 
+      - name: Download existing validated results
+        if: ${{ inputs.render_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: notebook05-demo
+          path: demo-input
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.render_run_id }}
+
+      - name: Copy only the numerical dataset
+        if: ${{ inputs.render_run_id != '' }}
+        run: cp demo-input/notebook05_demo.jld2 pluto_tutorial/notebook05_demo.jld2
+
       - name: Generate actual simulations, posterior samples and figures
+        if: ${{ inputs.render_run_id == '' }}
         run: julia --project=pluto_tutorial PlutoPages/tools/generate_notebook05_demo.jl
+
+      - name: Render validated results without new simulations or training
+        if: ${{ inputs.render_run_id != '' }}
+        run: julia --project=pluto_tutorial PlutoPages/tools/generate_notebook05_demo.jl --render-only
 
       - name: Upload teaching results
         uses: actions/upload-artifact@v4

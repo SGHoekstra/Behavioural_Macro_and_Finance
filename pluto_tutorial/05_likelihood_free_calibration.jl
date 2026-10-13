@@ -652,7 +652,7 @@ begin
         flattened = reduce(vcat, [chains[c, :, :] for c in 1:4])
         isapprox(flattened, nre_samples; atol=1e-6, rtol=1e-6) || error("Chain diagnostics do not match the retained posterior draws.")
         az = PythonCall.pyimport("arviz")
-        idata = az.from_dict(posterior=Dict("theta" => original.detach().cpu().numpy()))
+        idata = az.from_dict(posterior=PythonCall.pydict(Dict("theta" => original.detach().cpu().numpy())))
         rhat = PythonCall.pyconvert(Vector{Float64}, az.rhat(idata; method="rank")["theta"].values)
         bulk = PythonCall.pyconvert(Vector{Float64}, az.ess(idata; method="bulk")["theta"].values)
         tail = PythonCall.pyconvert(Vector{Float64}, az.ess(idata; method="tail")["theta"].values)

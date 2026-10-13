@@ -276,7 +276,7 @@ end
 Markdown.parse("Your real GDP: **$(round(inflation_adjusted, digits=2)) € bn**. Check: **$(isapprox(inflation_adjusted, nominal_gdp / (1 + inflation_rate)^n_quarters) ? "correct" : "revise the formula")**. At zero inflation it should equal nominal GDP; with positive inflation it should be lower.")
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000022
-PlutoUI.Foldable("Reveal the solution and interpretation", md"""
+PlutoUI.details("Reveal the solution and interpretation", md"""
 ```julia
 inflation_adjusted = nominal_gdp / (1 + inflation_rate)^n_quarters
 ```

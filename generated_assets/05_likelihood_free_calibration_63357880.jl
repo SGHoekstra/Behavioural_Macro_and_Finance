@@ -1,6 +1,6 @@
 ### A Pluto.jl notebook ###
 # v0.20.24
-# Saved demo SHA256: 16bb948cdc73e77db7a0f40f308a55df054d052a65440262afda78d4e6a18473
+# Saved demo SHA256: 5141b65e8e817f1df4a0675e9ca1fcea524a6be3a381ebf79b76d2e804006b88
 
 #> [frontmatter]
 #> order = 6
@@ -50,7 +50,7 @@ begin
     import Pkg
     Pkg.activate(joinpath(@__DIR__, "..", "..", "pluto_tutorial"); io=devnull)
     import BeforeIT as Bit
-    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates, JLD2
+    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates, JLD2, SHA
 end
 
 
@@ -139,12 +139,14 @@ begin
     demo_matches = (loaded_demo["θ_true"], loaded_demo["T_sim"], loaded_demo["N_paths"],
                     loaded_demo["N_abc"], loaded_demo["N_sbi"]) ==
                    (θ_true, T_sim, N_paths, N_abc, N_sbi)
+    demo_matches &= loaded_demo["metadata"]["canvas_sha256"] ==
+        bytes2hex(SHA.sha256(read(joinpath(@__DIR__, "..", "..", "pluto_tutorial", "canvas_model.jl"))))
     saved_demo = demo_matches ? loaded_demo : nothing
     demo_epsilon = demo_matches ? loaded_demo["ε"] : nothing
     demo_accepted = demo_matches ? count(d -> d < demo_epsilon, loaded_demo["abc_bank"].distances) : 0
     demo_matches ?
         md"**Saved demonstration:** $(N_abc) ABC draws, $(N_sbi) neural training pairs, $(N_paths) paths per output. The figures show one small-budget recovery experiment, not a comparison of method accuracy. Enable local execution to replace these results with new runs." :
-        md"The settings differ from the saved demonstration. Enable local execution and run the numbered stages to generate results for these settings; the old figures are hidden."
+        md"The settings or pricing rule differ from the saved demonstration. Enable local execution and run the numbered stages to generate matching results; the old figures are hidden."
 end
 
 # ╔═╡ fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6

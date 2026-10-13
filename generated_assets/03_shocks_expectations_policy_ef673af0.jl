@@ -313,9 +313,12 @@ The coefficients are re-estimated by OLS each quarter. The implementation also d
 forecast innovation from the fitted residual variance: this is a **stochastic learned
 forecast**, not just the conditional mean and not perfect foresight.
 
-`Bit.growth_inflation_expectations` applies the rule to **log GDP** and stored **log price
-changes**. It exponentiates the forecasts to obtain a GDP level and simple inflation rate;
-expected growth is forecast GDP divided by the latest GDP, minus one.
+`Bit.growth_inflation_expectations` applies the rule to **log aggregate gross output**
+(`agg.Y`, the sum of firm output) and stored **log price changes**. It exponentiates the
+forecasts to obtain an output level and simple inflation rate; expected growth is forecast
+output divided by the latest output, minus one. BeforeIT uses this output series as a GDP
+proxy for expectations. Reported real GDP instead deducts intermediate consumption and
+includes product taxes, so changes in sector composition can make the two growth rates differ.
 OLS fits the chosen forecasting rule to its history. It does not establish that the rule
 is optimal for the evolving economy or that expectations are rational.
 """
@@ -326,7 +329,7 @@ md"""
 ## 5 — Learned AR(1) versus last-observation forecasts
 
 - **Learned AR(1):** the default fitted rule, including its forecast innovation.
-- **Last observation:** expect no GDP growth and repeat the last observed inflation rate.
+- **Last observation:** hold the aggregate-output proxy constant and repeat the last observed inflation rate.
 
 Both use past observations. “Forward-looking” versus “backward-looking” would obscure that
 shared information set. The last-observation rule also removes the default forecast

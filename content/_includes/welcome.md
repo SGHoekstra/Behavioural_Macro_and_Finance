@@ -21,7 +21,7 @@ outcome, run a controlled experiment and explain what the result establishes.
 - **Advanced route: tutorials 04–05** — build an extension and investigate likelihood-free inference.
 
 Read the saved notebook outputs online, or run the source notebooks locally to change
-parameters. Tutorial 05 has an online guide; its inference experiments run locally.
+parameters. Tutorial 05 is rendered in reading mode; its inference experiments run locally.
 
 ## What the tutorial covers
 

@@ -20,16 +20,17 @@ LaTeX sources sit alongside each PDF.
 
 Six numbered [Pluto](https://plutojl.org) notebooks (00–05), including an optional
 Julia primer, build up the Lecture 2 model from a standing start. A standalone
-cheatsheet accompanies the sequence. Read notebooks 00–04 and the cheatsheet online;
-notebook 05 has an overview page and runs locally.
+cheatsheet accompanies the sequence. Read all six notebooks and the cheatsheet online.
+Notebook 05 is rendered in reading mode; run its simulation and inference stages locally.
 
 ### Requirements
 
 - **Julia 1.12 or later.** Install via [juliaup](https://github.com/JuliaLang/juliaup).
   The committed `Manifest.toml` was resolved on 1.12.1; on an older Julia, delete
   it and let `Pkg.instantiate()` re-resolve (you lose exact version pinning).
-- Notebook 05 additionally pulls a Python environment (`sbi`) through
-  PythonCall/CondaPkg on first run — a few hundred MB. Notebooks 00–04 are pure Julia.
+- Running inference in Notebook 05 additionally requires a Python environment (`sbi`),
+  installed through PythonCall/CondaPkg — a few hundred MB. Reading mode does not
+  enable its Python imports or training stages. Notebooks 00–04 are pure Julia.
 
 ### Setup
 
@@ -60,7 +61,7 @@ and function compilation can still take time; keep the terminal running.
 | 02 | [02_calibration_and_forecasting.jl](pluto_tutorial/02_calibration_and_forecasting.jl) | [Read online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/02_calibration_and_forecasting/) | Parameter tables and balance sheets, the no-burn-in property, Austria vs Italy, fan charts and an AR(1) benchmark |
 | 03 | [03_shocks_expectations_policy.jl](pluto_tutorial/03_shocks_expectations_policy.jl) | [Read online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/03_shocks_expectations_policy/) | The five AR(1) shock processes, bankruptcy cascades, non-linear responses, expectation formation and the Taylor rule |
 | 04 | [04_extensions_canvas.jl](pluto_tutorial/04_extensions_canvas.jl) | [Read online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/04_extensions_canvas/) | *Advanced* — extending the model with a CANVAS wage–price spiral |
-| 05 | [05_likelihood_free_calibration.jl](pluto_tutorial/05_likelihood_free_calibration.jl) | [Overview and local setup](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebook05/) | *Advanced* — calibrating that extension: ABC, NPE and SNRE. Needs Python (`sbi`); run locally, not rendered on the site |
+| 05 | [05_likelihood_free_calibration.jl](pluto_tutorial/05_likelihood_free_calibration.jl) | [Read online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/05_likelihood_free_calibration/) | *Advanced* — calibrating that extension: ABC, NPE and NRE. Read explanations and code online; run inference locally with Python (`sbi`) |
 
 The cheatsheet is a standalone reference, not part of the sequence:
 [read online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/cheatsheet/)

@@ -9,7 +9,8 @@ import Pluto
 const SITE = joinpath(@__DIR__, "_site", "generated_assets")
 const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
                       "03_shocks_expectations_policy", "04_extensions_canvas"]
-const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS; "cheatsheet"]
+const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS;
+                          "05_likelihood_free_calibration"; "cheatsheet"]
 
 function inspect_state(nb, state)
     bad = String[]

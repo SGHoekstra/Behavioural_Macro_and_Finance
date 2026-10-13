@@ -1,14 +1,15 @@
 ---
-title: "Likelihood-free calibration: ABC, NPE, SNRE"
-order: 6
-tags: ["tutorial"]
+title: "Running inference exercises"
+order: 3
+tags: ["start"]
 layout: "md.jlmd"
 ---
 
-# Notebook 05 — Likelihood-free calibration
+# Running Notebook 05 inference exercises
 
-**Read this guide online; run the full notebook locally.** Its simulations and neural
-training require a local Julia/Python environment. Use the staged local run to
+**[Read the full notebook online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/05_likelihood_free_calibration/).**
+It displays its explanations, code and exercises in reading mode. This guide explains
+how to run its simulations and neural training in a local Julia/Python environment,
 generate posterior draws and inspect how well the coefficients are recovered.
 
 [Open the notebook source](https://github.com/SGHoekstra/Behavioural_Macro_and_Finance/blob/main/pluto_tutorial/05_likelihood_free_calibration.jl)

@@ -10,7 +10,9 @@ layout: "md.jlmd"
 Notebooks 00–04 and the cheatsheet have their output already computed, so you can
 read them without installing anything. These are saved examples: online controls do not
 rerun the model. To change inputs and run exercises, open the notebooks locally in Pluto.
-Notebook 05 has an online guide and runs locally with Julia and Python.
+Notebook 05 is also available online in reading mode, with explanations, code and
+exercises. To generate observations and fit the neural estimators, run it locally
+with Julia and Python; follow the [inference setup guide](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebook05/).
 
 ## Requirements
 

@@ -24,7 +24,7 @@ end
 
 # ╔═╡ fe46785c-aeb2-11f1-b29c-f9f57fb156bb
 md"""
-# Notebook 05 — Likelihood-free calibration *(advanced, local only)*
+# Notebook 05 — Likelihood-free calibration *(advanced)*
 
 > **Question:** can inflation and GDP growth tell us how strongly CANVAS firms pass demand, cost and expectation changes into prices?
 
@@ -39,7 +39,7 @@ Work through Notebook 04 first. Here, the pricing rule stays fixed and its three
 
 The code runs **one round** of each neural method. The `sbi` engines also support sequential inference; an optional exercise explains what a second round changes.
 
-**Run locally:** this notebook requires PythonCall, PyTorch and `sbi`; it is not rendered on the course website. Enable the environment below, then press the numbered buttons in order. Opening it does not launch the simulation or training budgets. First-time Python setup may download packages; subsequent stages can take several minutes depending on your computer.
+**Read online, run locally:** the website displays the explanations and code in reading mode, with simulation and training stages disabled. To execute the exercises, open this notebook locally with PythonCall, PyTorch and `sbi`. Follow the [local setup guide](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebook05/), enable the environment below, then press the numbered buttons in order. First-time Python setup may download packages; subsequent stages can take several minutes depending on your computer.
 
 **Before running:** predict which coefficient could be hardest to identify from two aggregate series. What would a broad posterior mean?
 """
@@ -65,9 +65,11 @@ begin
     python_ready = if enable_inference
         # Import torch before Plots: on Linux this avoids pyexpat binding to
         # Julia's Expat_jll instead of conda's libexpat.
-        using PythonCall
-        pyimport("torch")
-        using Plots
+        # Keep imports behind runtime evaluation: Pluto's import discovery
+        # would otherwise load these modules even in reading mode.
+        @eval import PythonCall
+        PythonCall.pyimport("torch")
+        @eval import Plots
         true
     else
         false
@@ -198,15 +200,15 @@ begin
     if x_obs === nothing
         md"Enable the local environment and press button 1 to generate the observation."
     else
-        p_infl = plot(1:T_obs, x_obs[1:T_obs] .* 100,
+        p_infl = Plots.plot(1:T_obs, x_obs[1:T_obs] .* 100,
             xlabel="Quarter", ylabel="Inflation (%)", title="GDP-deflator inflation",
             label="", lw=2, color=:steelblue, marker=:circle, markersize=3)
-        hline!(p_infl, [0], color=:black, linestyle=:dash, label="")
-        p_gdp = plot(1:T_obs, x_obs[T_obs+1:end] .* 100,
+        Plots.hline!(p_infl, [0], color=:black, linestyle=:dash, label="")
+        p_gdp = Plots.plot(1:T_obs, x_obs[T_obs+1:end] .* 100,
             xlabel="Quarter", ylabel="Growth (%)", title="Real GDP growth",
             label="", lw=2, color=:darkorange, marker=:circle, markersize=3)
-        hline!(p_gdp, [0], color=:black, linestyle=:dash, label="")
-        plot(p_infl, p_gdp, layout=(1,2), size=(800,300),
+        Plots.hline!(p_gdp, [0], color=:black, linestyle=:dash, label="")
+        Plots.plot(p_infl, p_gdp, layout=(1,2), size=(800,300),
              plot_title="Synthetic observation: $(N_obs)-path average")
     end
 end
@@ -265,21 +267,21 @@ begin
     abc_accepted = abc_bank === nothing ? NamedTuple[] :
         abc_bank.parameters[abc_bank.distances .< ε]
     n_accepted = length(abc_accepted)
-    if abc_bank === nothing
+    if !python_ready || abc_bank === nothing
         md"No ABC bank yet."
     elseif n_accepted < 3
         md"ABC accepted **$(n_accepted)/$(N_abc)** draws at ε=$(ε). Too few draws to interpret a marginal histogram. Increase the tolerance to explore the stored bank."
     else
-        p1_abc = histogram([s.dp for s in abc_accepted], bins=10, xlims=(0,1),
+        p1_abc = Plots.histogram([s.dp for s in abc_accepted], bins=10, xlims=(0,1),
             title="Demand pull", xlabel="ϕ^DP", label="Accepted", color=:steelblue, alpha=0.7)
-        vline!(p1_abc, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
-        p2_abc = histogram([s.cp for s in abc_accepted], bins=10, xlims=(0,1),
+        Plots.vline!(p1_abc, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_abc = Plots.histogram([s.cp for s in abc_accepted], bins=10, xlims=(0,1),
             title="Cost push", xlabel="ϕ^CP", label="", color=:steelblue, alpha=0.7)
-        vline!(p2_abc, [θ_true.cp], color=:red, lw=2, label="")
-        p3_abc = histogram([s.ae for s in abc_accepted], bins=10, xlims=(0,1),
+        Plots.vline!(p2_abc, [θ_true.cp], color=:red, lw=2, label="")
+        p3_abc = Plots.histogram([s.ae for s in abc_accepted], bins=10, xlims=(0,1),
             title="Expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
-        vline!(p3_abc, [θ_true.ae], color=:red, lw=2, label="")
-        plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(800,280),
+        Plots.vline!(p3_abc, [θ_true.ae], color=:red, lw=2, label="")
+        Plots.plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(800,280),
              plot_title="ABC: $(n_accepted)/$(N_abc) accepted at ε=$(ε)")
     end
 end
@@ -323,13 +325,13 @@ Run button 3 to generate pairs, then button 4 for NPE. Button 5 for NRE is optio
 # ╔═╡ fe47a4e8-aeb2-11f1-a0c6-cf432609d50c
 begin
     _torch, _np, _sbi_inf, _sbi_utils, _mcmc_par = if python_ready
-        (pyimport("torch"), pyimport("numpy"), pyimport("sbi.inference"),
-         pyimport("sbi.utils"),
-         pyimport("sbi.inference.posteriors.posterior_parameters").MCMCPosteriorParameters)
+        (PythonCall.pyimport("torch"), PythonCall.pyimport("numpy"), PythonCall.pyimport("sbi.inference"),
+         PythonCall.pyimport("sbi.utils"),
+         PythonCall.pyimport("sbi.inference.posteriors.posterior_parameters").MCMCPosteriorParameters)
     else
         (nothing, nothing, nothing, nothing, nothing)
     end
-    python_ready ? md"Python inference imports ready (torch $(pyconvert(String, _torch.__version__)))." :
+    python_ready ? md"Python inference imports ready (torch $(PythonCall.pyconvert(String, _torch.__version__)))." :
         md"Python inference imports are disabled in reading mode."
 end
 
@@ -423,7 +425,7 @@ begin
                                      show_train_summary=true)
             posterior = engine.build_posterior(estimator).set_default_x(_x_obs_t)
             raw = posterior.sample([1000])
-            samples = pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
+            samples = PythonCall.pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
             (engine, posterior, samples)
         end
     else
@@ -435,19 +437,19 @@ end
 
 # ╔═╡ fe47a542-aeb2-11f1-86f9-154ba253a889
 begin
-    if snpe_samples === nothing
+    if !python_ready || snpe_samples === nothing
         md"No NPE draws yet."
     else
-        p1_snpe = histogram(snpe_samples[:,1], bins=20, normalize=true, xlims=(0,1),
+        p1_snpe = Plots.histogram(snpe_samples[:,1], bins=20, normalize=true, xlims=(0,1),
             title="NPE: demand pull", xlabel="ϕ^DP", label="Approximate posterior", color=:steelblue, alpha=0.7)
-        vline!(p1_snpe, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
-        p2_snpe = histogram(snpe_samples[:,2], bins=20, normalize=true, xlims=(0,1),
+        Plots.vline!(p1_snpe, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_snpe = Plots.histogram(snpe_samples[:,2], bins=20, normalize=true, xlims=(0,1),
             title="NPE: cost push", xlabel="ϕ^CP", label="", color=:steelblue, alpha=0.7)
-        vline!(p2_snpe, [θ_true.cp], color=:red, lw=2, label="")
-        p3_snpe = histogram(snpe_samples[:,3], bins=20, normalize=true, xlims=(0,1),
+        Plots.vline!(p2_snpe, [θ_true.cp], color=:red, lw=2, label="")
+        p3_snpe = Plots.histogram(snpe_samples[:,3], bins=20, normalize=true, xlims=(0,1),
             title="NPE: expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
-        vline!(p3_snpe, [θ_true.ae], color=:red, lw=2, label="")
-        plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(800,280))
+        Plots.vline!(p3_snpe, [θ_true.ae], color=:red, lw=2, label="")
+        Plots.plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(800,280))
     end
 end
 
@@ -486,7 +488,7 @@ begin
             _torch.manual_seed(0)
             _np.random.seed(0)
             raw = posterior.sample([200])
-            samples = pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
+            samples = PythonCall.pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
             (engine, posterior, samples)
         end
     else
@@ -498,19 +500,19 @@ end
 
 # ╔═╡ fe47a588-aeb2-11f1-8e59-3947a4232ada
 begin
-    if snre_samples === nothing
+    if !python_ready || snre_samples === nothing
         md"No NRE draws yet."
     else
-        p1_snre = histogram(snre_samples[:,1], bins=20, normalize=true, xlims=(0,1),
+        p1_snre = Plots.histogram(snre_samples[:,1], bins=20, normalize=true, xlims=(0,1),
             title="NRE-B: demand pull", xlabel="ϕ^DP", label="Approximate posterior", color=:darkorange, alpha=0.7)
-        vline!(p1_snre, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
-        p2_snre = histogram(snre_samples[:,2], bins=20, normalize=true, xlims=(0,1),
+        Plots.vline!(p1_snre, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_snre = Plots.histogram(snre_samples[:,2], bins=20, normalize=true, xlims=(0,1),
             title="NRE-B: cost push", xlabel="ϕ^CP", label="", color=:darkorange, alpha=0.7)
-        vline!(p2_snre, [θ_true.cp], color=:red, lw=2, label="")
-        p3_snre = histogram(snre_samples[:,3], bins=20, normalize=true, xlims=(0,1),
+        Plots.vline!(p2_snre, [θ_true.cp], color=:red, lw=2, label="")
+        p3_snre = Plots.histogram(snre_samples[:,3], bins=20, normalize=true, xlims=(0,1),
             title="NRE-B: expectations", xlabel="ϕ^AE", label="", color=:darkorange, alpha=0.7)
-        vline!(p3_snre, [θ_true.ae], color=:red, lw=2, label="")
-        plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(800,280))
+        Plots.vline!(p3_snre, [θ_true.ae], color=:red, lw=2, label="")
+        Plots.plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(800,280))
     end
 end
 
@@ -546,7 +548,7 @@ Move `ε` from 0.03 to 0.02 and 0.04. Record the accepted count and describe the
 
 ### 05.2 — Inspect joint identification *(no new ABM runs)*
 
-After NPE, use `scatter(snpe_samples[:,2], snpe_samples[:,3])` and `cor(snpe_samples[:,2], snpe_samples[:,3])`. Do cost push and expected inflation compensate for one another? Compare the joint cloud with the two marginal histograms.
+After NPE, use `Plots.scatter(snpe_samples[:,2], snpe_samples[:,3])` and `cor(snpe_samples[:,2], snpe_samples[:,3])`. Do cost push and expected inflation compensate for one another? Compare the joint cloud with the two marginal histograms.
 
 **Hint:** label both axes and restrict them to `[0,1]`. A diagonal cloud can show a trade-off even when each marginal has a visible peak. Do not assume this trade-off occurs before seeing the plot.
 

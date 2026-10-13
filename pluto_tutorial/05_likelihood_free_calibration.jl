@@ -63,11 +63,12 @@ Leave this unchecked to read the explanations. Check it when ready to run; initi
 # ╔═╡ f0050000-0000-4000-8000-000000000002
 begin
     python_ready = if enable_inference
-        # Import torch before Plots: on Linux this avoids pyexpat binding to
-        # Julia's Expat_jll instead of conda's libexpat.
+        # Load Python's XML extension before the plotting stack, so pyexpat
+        # binds conda's Expat library rather than Julia's older version.
         # Keep imports behind runtime evaluation: Pluto's import discovery
         # would otherwise load these modules even in reading mode.
         @eval import PythonCall
+        PythonCall.pyimport("pyexpat")
         PythonCall.pyimport("torch")
         @eval import Plots
         true

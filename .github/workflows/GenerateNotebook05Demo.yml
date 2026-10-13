@@ -28,6 +28,9 @@ jobs:
         with:
           version: '1.12.1'
 
+      - name: Check generator syntax and execution controls
+        run: julia --startup-file=no --compiled-modules=no PlutoPages/tools/generate_notebook05_demo.jl --check
+
       - name: Cache Julia depot
         uses: actions/cache@v4
         with:

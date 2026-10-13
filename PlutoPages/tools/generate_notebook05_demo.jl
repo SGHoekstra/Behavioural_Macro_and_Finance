@@ -2,7 +2,21 @@
 # Runs the notebook's actual simulation/inference cells; no separate simulator.
 # Usage: julia --project=pluto_tutorial PlutoPages/tools/generate_notebook05_demo.jl
 # First-time Python/PyTorch installation can take several minutes.
-using Dates, SHA
+# Add --check to validate source syntax and controls without loading dependencies.
+function assert_parseable(text, label)
+    function walk(expression)
+        expression isa Expr || return
+        if expression.head in (:error, :incomplete)
+            detail = isempty(expression.args) ? "Incomplete expression" : first(expression.args)
+            message = detail isa Exception ? sprint(showerror, detail) : string(detail)
+            error("$label has a syntax error:\n$message")
+        end
+        foreach(walk, expression.args)
+    end
+    walk(Meta.parseall(text))
+    return nothing
+end
+assert_parseable(read(@__FILE__, String), "Generator")
 
 root = normpath(joinpath(@__DIR__, "..", ".."))
 source = joinpath(root, "pluto_tutorial", "05_likelihood_free_calibration.jl")
@@ -15,12 +29,20 @@ count("PlutoUI.CheckBox(default=false)", code) == 1 ||
     error("Expected exactly one inference-enable checkbox.")
 code = replace(code, "PlutoUI.CheckBox(default=false)" => "PlutoUI.CheckBox(default=true)")
 for name in ("run_xobs", "run_abc", "run_sbi_sims", "run_snpe", "run_snre")
-    pattern = Regex("(?m)^@bind " * name * " PlutoUI.CounterButton\\([^\\n]*\\)$")
+    pattern = Regex("(?m)^@bind " * name * raw" PlutoUI.CounterButton\([^\n]*\)$")
     length(collect(eachmatch(pattern, code))) == 1 ||
         error("Expected exactly one execution control: $name")
     global code = replace(code, pattern => "$name = 1")
 end
+assert_parseable(code, "Transformed notebook")
+if ARGS == ["--check"]
+    println("PASS: generator/notebook syntax, saved-cell removal and all five execution controls.")
+    exit(0)
+elseif !isempty(ARGS)
+    error("Only the optional --check argument is supported.")
+end
 
+using Dates, SHA
 ENV["GKSwstype"] = "100"
 println("Running the notebook's five stages at ", now(UTC), " UTC.")
 flush(stdout)

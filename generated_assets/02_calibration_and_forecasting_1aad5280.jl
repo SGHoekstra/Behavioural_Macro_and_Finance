@@ -683,8 +683,8 @@ Does it increase monotonically?
 or multiply by 100 to report percent. Take the standard deviation across paths, not across time.
 
 **02.6 — An endpoint rather than a whole trajectory.**
-Apply 20 paths and `T_fc=20`, then compare the mean and standard deviation of GDP at horizon
-20. Reuse the existing ensemble rather than running every model for another 20 quarters.
+Apply 20 paths and `T_fc=20`, then compare the mean and standard deviation of GDP at horizon 20.
+Reuse the existing ensemble rather than running every model for another 20 quarters.
 
 *Hint:* raw levels are in `nb2_gdp_mat[21, :]`; indexed values are in `nb2_gdp_index_mat[21, :]`.
 State which units you report. Compare spread relative to the mean.

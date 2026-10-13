@@ -37,7 +37,7 @@ md"""
 
 > **Economic question:** how does a model start from an observed economy, and what evidence would make its forecasts credible?
 
-First inspect the calibration and balance sheets, then compare three initialisation experiments
+First inspect the calibration and balance sheets, then compare two initialisation experiments
 and two countries. Next build a Monte Carlo forecast and an AR(1) benchmark. Their final
 comparison shows **forecast disagreement**, not accuracy: there are no held-out outcomes in it.
 
@@ -176,26 +176,30 @@ md"""
 
 A burn-in discards an initial stretch of simulation because the starting state creates artificial
 transients. Data-based initialisation aims to make the model useful from the reference quarter.
-The lecture's stronger diagnostic is that, when growth processes are suppressed, the model
-fluctuates around its initial conditions.
+The lecture's stronger diagnostic suppresses growth processes and asks whether the model
+fluctuates around its initial conditions. The experiment below is narrower: it changes three
+correlated innovations while retaining the empirical histories used to form expectations.
 
-Compare three scenarios over **20 quarters (five years)**:
+Compare two scenarios over **20 quarters (five years)**:
 1. **Baseline:** Austria 2010:Q1 with its normal stochastic processes.
 2. **Correlated innovations off (`C=0`):** zero the covariance matrix for euro-area GDP,
    export demand and import supply. Their deterministic AR(1) terms remain. Government
    consumption and euro-area inflation still draw innovations using separate scalar `σ` values.
-3. **Steady-state calibration:** `Bit.STEADY_STATE2010Q1` fixes the exogenous processes,
-   uses a fixed policy rate and flat histories for expectations. Random market matching can
-   remain, so an exactly flat aggregate path is not guaranteed.
 
-**Predict, then inspect:** which change should reduce drift, and why is `C=0` not a complete
-no-growth experiment? Scenario 3 changes several assumptions together: it is a diagnostic,
-not the causal effect of switching off one shock. A finite run illustrates stability under
-these settings rather than proving the calibrated economy is an exact fixed point.
+**A no-growth comparison needs an expectations rule too.** `Bit.STEADY_STATE2010Q1` fixes
+exogenous processes and policy, and flattens the histories used by adaptive expectations.
+A constant history cannot identify an AR(1) slope and intercept separately; the default
+refitting can fail numerically. That calibration is therefore not simulated in this exercise.
+An initial accounting balance alone does not establish a dynamically stable steady state.
+The horizontal line in the plot marks initial GDP, not a simulated steady-state path.
+
+**Predict, then inspect:** should removing these innovations reduce drift? Why is `C=0` not a
+complete no-growth experiment? Compare the paths, but do not treat either as a full test of the
+lecture's no-burn-in claim or a proof that the calibrated economy is an exact fixed point.
 """
 
 # ╔═╡ b293071c-aeb8-11f1-acbf-7f82e962da0c
-@bind run_noburn PlutoUI.CounterButton("↻ Repeat initialisation comparison (3 × 20 quarters)")
+@bind run_noburn PlutoUI.CounterButton("↻ Repeat initialisation comparison (2 × 20 quarters)")
 
 # ╔═╡ b293074e-aeb8-11f1-b819-abbb938d2334
 begin
@@ -210,24 +214,16 @@ begin
     model_no_shocks.prop.C .= 0.0
     Bit.run!(model_no_shocks, 20)
 
-    Random.seed!(42)
-    nb2_ss_p = Bit.STEADY_STATE2010Q1.parameters
-    nb2_ss_ic = Bit.STEADY_STATE2010Q1.initial_conditions
-    model_steady = Bit.Model(nb2_ss_p, nb2_ss_ic)
-    Bit.run!(model_steady, 20)
-
-    "Three 20-quarter simulations complete. A fixed seed aids reproducibility; each scenario has different dynamics."
+    "Two 20-quarter simulations complete. A fixed seed aids reproducibility; each scenario has different dynamics."
 end
 
 # ╔═╡ 0a77cff2-b9b5-4b86-b669-9bdb8a262131
 begin
     gdp_on = model_shocks_on.data.real_gdp
     gdp_off = model_no_shocks.data.real_gdp
-    gdp_steady = model_steady.data.real_gdp
-    # Index each scenario to its own initial value, including the steady-state calibration.
+    # Index each simulated scenario to its own initial value.
     nb2_index_on = 100 .* gdp_on ./ first(gdp_on)
     nb2_index_off = 100 .* gdp_off ./ first(gdp_off)
-    nb2_index_steady = 100 .* gdp_steady ./ first(gdp_steady)
     nothing
 end
 
@@ -238,13 +234,12 @@ begin
               title="Initialisation comparison: real GDP", xlabel="Quarters after initialisation",
               ylabel="Index (own t=0 = 100)")
     plot!(p3, 0:20, nb2_index_off, label="Correlated innovations off (C=0)", lw=2, color=:crimson, ls=:dash)
-    plot!(p3, 0:20, nb2_index_steady, label="Steady-state calibration", lw=2, color=:forestgreen)
-    hline!(p3, [100], label="Initial level", color=:grey, ls=:dot)
+    hline!(p3, [100], label="Initial GDP (reference)", color=:grey, ls=:dot)
 
-    p4 = plot(0:20, nb2_index_off .- 100, label="C=0", color=:crimson, lw=2, ls=:dash,
+    p4 = plot(0:20, nb2_index_on .- 100, label="Baseline", color=:steelblue, lw=2,
               title="GDP deviation from each scenario's initial value", xlabel="Quarters after initialisation",
               ylabel="Percent deviation")
-    plot!(p4, 0:20, nb2_index_steady .- 100, label="Steady-state calibration", color=:forestgreen, lw=2)
+    plot!(p4, 0:20, nb2_index_off .- 100, label="Correlated innovations off (C=0)", color=:crimson, lw=2, ls=:dash)
     hline!(p4, [0], color=:black, lw=1, label="")
     plot(p3, p4, layout=(2, 1), size=(750, 580))
 end
@@ -253,21 +248,20 @@ end
 begin
     dev_on = maximum(abs.(nb2_index_on .- 100))
     dev_off = maximum(abs.(nb2_index_off .- 100))
-    dev_steady = maximum(abs.(nb2_index_steady .- 100))
     Markdown.parse("""
     | Scenario | Maximum absolute GDP deviation from own t=0 (20 quarters) |
     |---|---|
     | Baseline | **$(round(dev_on, digits=2))%** |
     | Correlated innovations off (`C=0`) | **$(round(dev_off, digits=2))%** |
-    | Steady-state calibration | **$(round(dev_steady, digits=2))%** |
 
     The table measures the largest departure along each single path. It is neither a forecast
     error nor an across-path standard deviation. In the `C=0` run, deterministic terms,
     the two remaining exogenous innovations and market matching can still move GDP.
 
     **Interpretation task:** does the observed ordering agree with your prediction? Explain
-    remaining movement before generalising. A steady-state path close to its starting value
-    supports this diagnostic for the displayed calibration and horizon; it does not imply every
+    remaining movement before generalising. These paths illustrate initialisation under two
+    stochastic specifications. Fixed seeds make the examples reproducible; a difference between
+    single paths does not measure an isolated causal effect. Neither establishes that every
     country or policy experiment starts at an exact fixed point.
     """)
 end
@@ -638,7 +632,8 @@ md"""
 - Aggregate household deposits include workers, inactive households and owners. Financial stocks
   and quarterly rates need separate unit labels.
 - `C=0` removes three correlated innovations; it leaves deterministic dynamics, two other
-  exogenous innovations and random matching. The steady-state calibration is a separate diagnostic.
+  exogenous innovations and random matching. A full no-growth diagnostic also needs a
+  well-defined expectations rule; an accounting reference is not a simulated steady state.
 - GDP indices and deflator levels describe different objects; inflation is a change in the deflator.
 - Monte Carlo quantiles describe fixed-calibration path dispersion, not uncertainty in the mean.
 - A levels AR(1) is a teaching benchmark. Indexed forecast disagreement is not out-of-sample accuracy.
@@ -695,12 +690,15 @@ Apply 20 paths and `T_fc=20`, then compare the mean and standard deviation of GD
 State which units you report. Compare spread relative to the mean.
 
 **02.7 — Longer-horizon diagnostic (stretch).**
-Run a fresh steady-state model for 80 quarters. Then compare fresh Austria and Italy models with
-`C=0` over 20 quarters. Is the steady-state deviation still small, and which country departs more?
+Compare fresh Austria and Italy models with `C=0` over 20 quarters, then extend a small set of
+seeds to 80 quarters. Which country departs more from its starting GDP, and does that ordering
+persist? Outline what else would need to change to construct the lecture's no-growth diagnostic.
 
 *Hint:* index each path to its own initial value, report the metric and horizon, and do not treat
-a single path as a stability proof. Explain why future realised exogenous paths would change
-the information set if you instead performed a conditional forecast.
+a single path as a stability proof. Removing all exogenous drifts and innovations is a stronger
+change than `C=0`; flat histories also require an explicit expectations rule rather than an
+unidentified AR(1) fit. Future realised exogenous paths would instead change the information
+set of a conditional forecast.
 """
 
 # ╔═╡ Cell order:

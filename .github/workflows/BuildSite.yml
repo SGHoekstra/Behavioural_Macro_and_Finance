@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # A cold build executes the online notebooks; notebook 05 exports in reading mode.
+    # Notebook 05 renders its saved demonstration plots without Python training.
     timeout-minutes: 90
 
     steps:

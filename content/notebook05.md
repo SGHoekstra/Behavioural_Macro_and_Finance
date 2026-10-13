@@ -8,7 +8,9 @@ layout: "md.jlmd"
 # Running Notebook 05 inference exercises
 
 **[Read the full notebook online](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebooks/05_likelihood_free_calibration/).**
-It displays its explanations, code and exercises in reading mode. This guide explains
+It displays its explanations, code, exercises and **saved figures from an actual
+default run**: the synthetic observation and the ABC, NPE and NRE-B results. The online
+controls do not rerun the experiment. This guide explains
 how to run its simulations and neural training in a local Julia/Python environment,
 generate posterior draws and inspect how well the coefficients are recovered.
 
@@ -56,7 +58,8 @@ julia -t auto -e 'using Pluto; Pluto.run()'
 ```
 
 Open `05_likelihood_free_calibration.jl` in Pluto. Opening the notebook starts in
-**reading mode**: simulation and training stages are disabled. Enabling the local
+**reading mode**: saved results and their plots are available, while new simulation
+and training stages are disabled. Enabling the local
 environment may install Python, PyTorch and `sbi` on first use.
 
 1. **Enable the local environment.** Read the observation protocol and small-budget settings.

@@ -8,21 +8,24 @@ import Pluto
 
 const SITE = joinpath(@__DIR__, "_site", "generated_assets")
 const EXPECT_PLOTS = ["01_meet_the_model", "02_calibration_and_forecasting",
-                      "03_shocks_expectations_policy", "04_extensions_canvas"]
-const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS;
-                          "05_likelihood_free_calibration"; "cheatsheet"]
+                      "03_shocks_expectations_policy", "04_extensions_canvas",
+                      "05_likelihood_free_calibration"]
+const EXPECT_NOTEBOOKS = ["00_julia_pluto_primer"; EXPECT_PLOTS; "cheatsheet"]
+const MIN_IMAGES = Dict("05_likelihood_free_calibration" => 4)
 
 function inspect_state(nb, state)
     bad = String[]
     results = state["cell_results"]
     isempty(results) && push!(bad, "$nb: no cell results")
-    has_img = false
+    image_count = 0
     for id in state["cell_order"]
         cell = results[id]
         output = cell["output"]
         body = get(output, "body", nothing)
         mime = get(output, "mime", "")
-        has_img |= mime in ("image/png", "image/svg+xml")
+        embedded_image = mime == "text/html" && body isa AbstractString &&
+            occursin(r"<img\b[^>]*\bsrc\s*=\s*['\"]data:image/(?:png|svg\+xml);base64,", body)
+        image_count += mime in ("image/png", "image/svg+xml") || embedded_image
         if cell["errored"]
             message = body isa AbstractDict ? get(body, "msg", repr(body)) : string(body)
             push!(bad, "$nb: cell $id errored — $(replace(message, '\n' => ' '))")
@@ -34,7 +37,9 @@ function inspect_state(nb, state)
             push!(bad, "$nb: Pkg activate banner leaked into cell $id")
         end
     end
-    nb in EXPECT_PLOTS && !has_img && push!(bad, "$nb: no rendered image output")
+    required = get(MIN_IMAGES, nb, nb in EXPECT_PLOTS ? 1 : 0)
+    image_count < required && push!(bad,
+        "$nb: only $image_count rendered image outputs; expected at least $required")
     bad
 end
 

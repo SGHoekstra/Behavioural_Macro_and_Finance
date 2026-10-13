@@ -1,5 +1,6 @@
 ### A Pluto.jl notebook ###
 # v0.20.24
+# Saved demo SHA256: 16bb948cdc73e77db7a0f40f308a55df054d052a65440262afda78d4e6a18473
 
 #> [frontmatter]
 #> order = 6
@@ -39,7 +40,7 @@ Work through Notebook 04 first. Here, the pricing rule stays fixed and its three
 
 The code runs **one round** of each neural method. The `sbi` engines also support sequential inference; an optional exercise explains what a second round changes.
 
-**Read online, run locally:** the website displays the explanations and code in reading mode, with simulation and training stages disabled. To execute the exercises, open this notebook locally with PythonCall, PyTorch and `sbi`. Follow the [local setup guide](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebook05/), enable the environment below, then press the numbered buttons in order. First-time Python setup may download packages; subsequent stages can take several minutes depending on your computer.
+**Read online, run locally:** the website displays the explanations, code and **saved figures from a real run of the default experiment**: the synthetic observation, ABC, NPE and NRE-B. Simulations and training are disabled online; changing controls requires opening the notebook locally. Follow the [local setup guide](https://sghoekstra.github.io/Behavioural_Macro_and_Finance/notebook05/), enable the environment below, then press the numbered buttons in order. First-time Python setup may download packages; subsequent stages can take several minutes depending on your computer.
 
 **Before running:** predict which coefficient could be hardest to identify from two aggregate series. What would a broad posterior mean?
 """
@@ -49,15 +50,15 @@ begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
     import BeforeIT as Bit
-    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
+    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates, JLD2
 end
 
 
 # ╔═╡ f0050000-0000-4000-8000-000000000001
 md"""
-**Enable the local Python and plotting environment:** $(@bind enable_inference PlutoUI.CheckBox(default=false))
+**Enable local Python simulations and training:** $(@bind enable_inference PlutoUI.CheckBox(default=false))
 
-Leave this unchecked to read the explanations. Check it when ready to run; initialise the observation before starting ABC or neural inference.
+Leave this unchecked to read the explanations and saved results. Check it when ready to rerun the experiment; initialise the observation before starting ABC or neural inference.
 """
 
 # ╔═╡ f0050000-0000-4000-8000-000000000002
@@ -76,7 +77,7 @@ begin
         false
     end
     python_ready ? md"Local environment loaded. Continue to the observation button in Section 4." :
-        md"Reading mode: Python setup, simulations and training are disabled."
+        md"Reading mode: figures use a saved default run. Python setup, new simulations and training are disabled."
 end
 
 # ╔═╡ fe47a3e4-aeb2-11f1-8672-87cfc7b65656
@@ -130,6 +131,20 @@ begin
     N_abc = 100
     N_sbi = 200
     "Setup: $(round(Int, sum(parameters["I_s"]))) firms; T=$(T_sim), $(N_paths) paths per output. Synthetic truth: $(θ_true)."
+end
+
+# ╔═╡ f0050000-0000-4000-8000-000000000004
+begin
+    loaded_demo = JLD2.load(joinpath(@__DIR__, "notebook05_demo.jld2"))
+    demo_matches = (loaded_demo["θ_true"], loaded_demo["T_sim"], loaded_demo["N_paths"],
+                    loaded_demo["N_abc"], loaded_demo["N_sbi"]) ==
+                   (θ_true, T_sim, N_paths, N_abc, N_sbi)
+    saved_demo = demo_matches ? loaded_demo : nothing
+    demo_epsilon = demo_matches ? loaded_demo["ε"] : nothing
+    demo_accepted = demo_matches ? count(d -> d < demo_epsilon, loaded_demo["abc_bank"].distances) : 0
+    demo_matches ?
+        md"**Saved demonstration:** $(N_abc) ABC draws, $(N_sbi) neural training pairs, $(N_paths) paths per output. The figures show one small-budget recovery experiment, not a comparison of method accuracy. Enable local execution to replace these results with new runs." :
+        md"The settings differ from the saved demonstration. Enable local execution and run the numbered stages to generate results for these settings; the old figures are hidden."
 end
 
 # ╔═╡ fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6
@@ -195,10 +210,12 @@ begin
     x_obs = if python_ready && run_xobs > 0
         summarise(θ_true; seed=42, N=N_obs)
     else
-        nothing
+        saved_demo === nothing ? nothing : saved_demo["x_obs"]
     end
     T_obs = T_sim
-    if x_obs === nothing
+    if !python_ready && saved_demo !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "observation.png"))
+    elseif x_obs === nothing
         md"Enable the local environment and press button 1 to generate the observation."
     else
         p_infl = Plots.plot(1:T_obs, x_obs[1:T_obs] .* 100,
@@ -209,8 +226,8 @@ begin
             xlabel="Quarter", ylabel="Growth (%)", title="Real GDP growth",
             label="", lw=2, color=:darkorange, marker=:circle, markersize=3)
         Plots.hline!(p_gdp, [0], color=:black, linestyle=:dash, label="")
-        Plots.plot(p_infl, p_gdp, layout=(1,2), size=(800,300),
-             plot_title="Synthetic observation: $(N_obs)-path average")
+        Plots.plot(p_infl, p_gdp, layout=(1,2), size=(1050,420),
+             bottom_margin=6Plots.mm, top_margin=4Plots.mm)
     end
 end
 
@@ -249,9 +266,10 @@ begin
             (parameters=draws, distances=distances)
         end
     else
-        nothing
+        saved_demo === nothing ? nothing : saved_demo["abc_bank"]
     end
     abc_bank === nothing ? md"Generate the observation, then press button 2. ABC is optional before the neural methods." :
+    (!python_ready || run_abc == 0) ? md"Saved ABC result: **$(demo_accepted)/$(N_abc) accepted** at ε=$(demo_epsilon). Enable local execution to replot the stored distances at a different tolerance." :
         md"Computed $(length(abc_bank.distances)) distances. Try the tolerance slider; it does not launch new simulations."
 end
 
@@ -261,6 +279,7 @@ md"""
 ABC tolerance $\epsilon$: $(@bind ε PlutoUI.Slider(0.005:0.005:0.10; default=0.03, show_value=true))
 
 This is an illustrative starting value in trajectory-norm units, not a validated tolerance.
+The reading-mode figure uses the saved tolerance; the slider replots only with local execution enabled.
 """
 
 # ╔═╡ fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
@@ -268,7 +287,9 @@ begin
     abc_accepted = abc_bank === nothing ? NamedTuple[] :
         abc_bank.parameters[abc_bank.distances .< ε]
     n_accepted = length(abc_accepted)
-    if !python_ready || abc_bank === nothing
+    if !python_ready && saved_demo !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "abc.png"))
+    elseif abc_bank === nothing
         md"No ABC bank yet."
     elseif n_accepted < 3
         md"ABC accepted **$(n_accepted)/$(N_abc)** draws at ε=$(ε). Too few draws to interpret a marginal histogram. Increase the tolerance to explore the stored bank."
@@ -282,8 +303,8 @@ begin
         p3_abc = Plots.histogram([s.ae for s in abc_accepted], bins=10, xlims=(0,1),
             title="Expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
         Plots.vline!(p3_abc, [θ_true.ae], color=:red, lw=2, label="")
-        Plots.plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(800,280),
-             plot_title="ABC: $(n_accepted)/$(N_abc) accepted at ε=$(ε)")
+        Plots.plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(1050,420),
+             bottom_margin=6Plots.mm, top_margin=4Plots.mm)
     end
 end
 
@@ -372,10 +393,10 @@ begin
             (parameters=θs, outputs=xs, failures=failures)
         end
     else
-        nothing
+        saved_demo === nothing ? nothing : saved_demo["sbi_bank"]
     end
     _n_failed = sbi_bank === nothing ? 0 : length(sbi_bank.failures)
-    _sbi_ready = sbi_bank !== nothing && _n_failed == 0 && length(sbi_bank.parameters) >= 50
+    _sbi_ready = python_ready && sbi_bank !== nothing && _n_failed == 0 && length(sbi_bank.parameters) >= 50
     _θ_mat, _x_mat, _θ_tensor, _x_tensor, _x_obs_t, _sbi_prior = if _sbi_ready
         let θmat=Float32.(reduce(vcat, [[t.dp t.cp t.ae] for t in sbi_bank.parameters])),
             xmat=reduce(vcat, [permutedims(x) for x in sbi_bank.outputs])
@@ -394,6 +415,8 @@ begin
         let messages=join(first(sbi_bank.failures, min(3, _n_failed)), " | ")
             md"Training blocked: **$(_n_failed)/$(N_sbi)** simulations failed. First errors: $(messages)."
         end
+    elseif !python_ready
+        md"Saved training bank: **$(length(sbi_bank.parameters)) pairs**, no failed draws. Enable local execution to train the networks."
     elseif !_sbi_ready
         md"Use at least 50 valid examples for this demonstration. A small training set is not a posterior-accuracy guarantee."
     else
@@ -430,15 +453,18 @@ begin
             (engine, posterior, samples)
         end
     else
-        (nothing, nothing, nothing)
+        (nothing, nothing, saved_demo === nothing ? nothing : saved_demo["snpe_samples"])
     end
     snpe_samples === nothing ? md"Generate a valid training bank, then press button 4." :
+    snpe_engine === nothing ? md"Saved NPE result: **$(size(snpe_samples, 1)) approximate posterior draws** from the default run. Press button 4 locally to retrain." :
         md"NPE produced **$(size(snpe_samples, 1)) approximate posterior draws**. Check the training summary and compare the three marginals below."
 end
 
 # ╔═╡ fe47a542-aeb2-11f1-86f9-154ba253a889
 begin
-    if !python_ready || snpe_samples === nothing
+    if !python_ready && saved_demo !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "npe.png"))
+    elseif snpe_samples === nothing
         md"No NPE draws yet."
     else
         p1_snpe = Plots.histogram(snpe_samples[:,1], bins=20, normalize=true, xlims=(0,1),
@@ -450,7 +476,8 @@ begin
         p3_snpe = Plots.histogram(snpe_samples[:,3], bins=20, normalize=true, xlims=(0,1),
             title="NPE: expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
         Plots.vline!(p3_snpe, [θ_true.ae], color=:red, lw=2, label="")
-        Plots.plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(800,280))
+        Plots.plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(1050,420),
+             bottom_margin=6Plots.mm, top_margin=4Plots.mm)
     end
 end
 
@@ -493,15 +520,18 @@ begin
             (engine, posterior, samples)
         end
     else
-        (nothing, nothing, nothing)
+        (nothing, nothing, saved_demo === nothing ? nothing : saved_demo["snre_samples"])
     end
     snre_samples === nothing ? md"Generate a valid training bank, then press button 5." :
+    snre_engine === nothing ? md"Saved NRE-B result: **$(size(snre_samples, 1)) MCMC draws** from the default run. These draws are correlated; press button 5 locally to retrain." :
         md"NRE-B produced **$(size(snre_samples, 1)) MCMC draws** from an approximate posterior. These are not 200 independent observations."
 end
 
 # ╔═╡ fe47a588-aeb2-11f1-8e59-3947a4232ada
 begin
-    if !python_ready || snre_samples === nothing
+    if !python_ready && saved_demo !== nothing
+        PlutoUI.LocalResource(joinpath(@__DIR__, "notebook05_figures", "nre.png"))
+    elseif snre_samples === nothing
         md"No NRE draws yet."
     else
         p1_snre = Plots.histogram(snre_samples[:,1], bins=20, normalize=true, xlims=(0,1),
@@ -513,7 +543,8 @@ begin
         p3_snre = Plots.histogram(snre_samples[:,3], bins=20, normalize=true, xlims=(0,1),
             title="NRE-B: expectations", xlabel="ϕ^AE", label="", color=:darkorange, alpha=0.7)
         Plots.vline!(p3_snre, [θ_true.ae], color=:red, lw=2, label="")
-        Plots.plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(800,280))
+        Plots.plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(1050,420),
+             bottom_margin=6Plots.mm, top_margin=4Plots.mm)
     end
 end
 
@@ -593,6 +624,7 @@ Use `snpe_post_py` conditioned on `x_obs` as a proposal for **100** new draws. S
 # ╟─fe47a3e4-aeb2-11f1-8672-87cfc7b65656
 # ╟─fe47a3f8-aeb2-11f1-bb78-fdae608fd8dd
 # ╠═fe47a416-aeb2-11f1-9746-851acfeb8207
+# ╠═f0050000-0000-4000-8000-000000000004
 # ╟─fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6
 # ╠═fe47a436-aeb2-11f1-9b2a-3f8bba375ef7
 # ╠═fe47a43e-aeb2-11f1-8236-cf09de2a48a6

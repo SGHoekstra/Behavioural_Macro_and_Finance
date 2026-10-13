@@ -7,8 +7,8 @@
 
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 
-# Notebook 05 exports in its default reading mode. Python imports, simulation
-# banks and neural training stay behind its local execution controls.
+# Notebook 05 exports figures from a saved teaching run. New Python simulations
+# and neural training stay behind its local execution controls.
 const NOTEBOOKS = [
     ("00_julia_pluto_primer.jl",           "Julia + Pluto primer",                        1),
     ("01_meet_the_model.jl",               "Meet the model",                              2),
@@ -45,6 +45,10 @@ const LECTURES = [
 # include file becomes a bare source page that lands in the search index.
 const INCLUDE_FROM = "include(joinpath(@__DIR__, \"canvas_model.jl\"))"
 const INCLUDE_TO   = "include(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"canvas_model.jl\"))"
+const DEMO_FROM = "JLD2.load(joinpath(@__DIR__, \"notebook05_demo.jld2\"))"
+const DEMO_TO = "JLD2.load(joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"notebook05_demo.jld2\"))"
+const FIGURES_FROM = "joinpath(@__DIR__, \"notebook05_figures\","
+const FIGURES_TO = "joinpath(@__DIR__, \"..\", \"..\", \"pluto_tutorial\", \"notebook05_figures\","
 
 const ACTIVATE_FROM = "Pkg.activate(dirname(@__FILE__))"
 # io=devnull keeps Pkg's "Activating project at /abs/path" banner out of the
@@ -73,7 +77,9 @@ function main()
     for (file, title, order) in NOTEBOOKS
         src = joinpath(ROOT, "pluto_tutorial", file)
         isfile(src) || error("missing notebook: $src")
-        body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO, INCLUDE_FROM => INCLUDE_TO)
+        body = replace(read(src, String), ACTIVATE_FROM => ACTIVATE_TO,
+                       INCLUDE_FROM => INCLUDE_TO, DEMO_FROM => DEMO_TO,
+                       FIGURES_FROM => FIGURES_TO)
         @assert occursin("pluto_tutorial", body) "activate rewrite failed for $file"
         write(joinpath(nbdir, file), with_frontmatter(body, title, order))
     end

@@ -7,9 +7,10 @@ layout: "md.jlmd"
 
 # Running the notebooks
 
-Every notebook on this site is rendered with its output already computed, so you can
-read straight through without installing anything. To move the sliders and change the
-model you need Julia.
+Notebooks 00–04 and the cheatsheet have their output already computed, so you can
+read them without installing anything. These are saved examples: online controls do not
+rerun the model. To change inputs and run exercises, open the notebooks locally in Pluto.
+Notebook 05 has an online guide and runs locally with Julia and Python.
 
 ## Requirements
 
@@ -24,8 +25,9 @@ on first run — a few hundred megabytes. Notebooks 00–04 are pure Julia.
 
 Clone the repository, then run this once:
 
-```
-cd pluto_tutorial
+```bash
+git clone https://github.com/SGHoekstra/Behavioural_Macro_and_Finance.git
+cd Behavioural_Macro_and_Finance/pluto_tutorial
 julia setup.jl
 ```
 
@@ -37,13 +39,32 @@ julia -t auto -e 'using Pluto; Pluto.run()'
 ```
 
 Open any notebook from the Pluto file browser. Each notebook activates the shared
-environment itself, so there is nothing to precompile per notebook.
+environment itself, so the same package versions are used throughout. The first
+opening can still compile packages and functions; allow it to finish before changing
+controls. Keep the terminal running while you use Pluto.
 
 ## Order
 
 Work through 01 to 05 in sequence — each assumes the previous ones. 00 is an optional Julia
 and Pluto primer, and `cheatsheet.jl` is a standalone reference to keep open in a second
-tab. Exercises are at the bottom of each notebook.
+tab. Exercises and interpretation checks are at the bottom of each notebook. Use fresh
+variable names in your exercise cells; Pluto allows one defining cell per global
+variable. Prefer **Apply settings** controls for expensive examples so changing several
+inputs launches one new calculation rather than a sequence of reruns.
 
-Notebook 05 is the heavy one: it pulls the Python `sbi` environment and takes roughly
-20 minutes to run through. Notebooks 01–04 are pure Julia.
+Notebook 05 uses staged run controls and small demonstration budgets. Installing
+its Python environment and increasing simulation or training budgets can take
+considerably longer. Follow its guide before launching a full inference exercise.
+
+## A useful workflow
+
+1. Read the question and predict a result before running the example.
+2. Record the calibration, seed, horizon and measurement units.
+3. Change one setting or mechanism at a time and compare like with like.
+4. Explain the result economically, including one assumption that limits the conclusion.
+5. Complete a core exercise before moving to the advanced extension.
+
+If a run appears slow, check Pluto's running-cell indicator and the terminal before
+launching another simulation. Start with the supplied defaults. Restarting Pluto is
+useful after changing a model type or its methods, because those definitions can
+persist within the Julia process.

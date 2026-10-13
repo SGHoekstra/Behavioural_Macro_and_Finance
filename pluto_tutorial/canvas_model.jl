@@ -57,6 +57,9 @@ end
 
 Build a `CANVASModel` from parameters and initial conditions.
 
+Use BeforeIT's tuple constructor to assign workers to firms, initialise
+household incomes and balance sheets, and collect the initial observation.
+
 `Q_s_i` is seeded from `Y_i` so the demand-pull ratio `Q_d_i / Q_s_i` is well
 defined in the first quarter instead of dividing by zero.
 """
@@ -66,7 +69,7 @@ function build_canvas_model(p, ic)
     cb    = Bit.CentralBank(p, ic);    gov  = Bit.Government(p, ic)
     rotw  = Bit.RestOfTheWorld(p, ic); agg  = Bit.Aggregates(p, ic)
     prop  = Bit.Properties(p, ic);     data = Bit.Data()
-    m = CANVASModel(w_act, w_inact, firms, bank, cb, gov, rotw, agg, prop, data)
+    m = CANVASModel((w_act, w_inact, firms, bank, cb, gov, rotw, agg, prop, data))
     m.firms.Q_s_i .= m.firms.Y_i
     return m
 end

@@ -24,22 +24,24 @@ end
 
 # ╔═╡ fe46785c-aeb2-11f1-b29c-f9f57fb156bb
 md"""
-# Notebook 05 — Likelihood-free calibration with simulation-based inference *(advanced)*
+# Notebook 05 — Likelihood-free calibration *(advanced, local only)*
 
-> **Question this notebook answers:** the CANVAS pass-through coefficients $\phi^{DP}, \phi^{CP}, \phi^{AE}$ are free parameters. How do we calibrate them without a tractable likelihood?
+> **Question:** can inflation and GDP growth tell us how strongly CANVAS firms pass demand, cost and expectation changes into prices?
 
-### Lecture 2 slides covered
-- *The Likelihood Problem in Agent-Based Models*
-- *Neural Posterior Estimation (Dyer et al., 2024)*
-- *Sequential Neural Posterior Estimation (SNPE)*
-- *Results: decisive improvement over KDE*
+Work through Notebook 04 first. Here, the pricing rule stays fixed and its three pass-through coefficients become unknown. We use a **known-truth recovery experiment**: simulate observations at chosen coefficients, hide those coefficients from the estimator, and see what the data can recover.
 
-### Learning goals
-1. Understand why standard Bayesian methods fail for ABMs (intractable likelihood).
-2. Build a simulator function $\theta \mapsto x$ compatible with SBI libraries.
-3. Run a simple Approximate Bayesian Computation (ABC) as a baseline.
-4. See how Neural Posterior Estimation (NPE) overcomes the ABC curse of dimensionality.
-5. Run SNPE-C and SNRE-B end-to-end using the Python `sbi` package via `PythonCall`.
+### Route through the notebook
+1. Define the unknown parameters, prior and observation protocol.
+2. Build one simulator and generate a synthetic observation.
+3. Use **ABC** to retain parameter draws that reproduce similar data.
+4. Reuse simulated parameter–data pairs for **NPE** and **NRE-B**.
+5. Separate parameter recovery, inference diagnostics and model validation.
+
+The code runs **one round** of each neural method. The `sbi` engines also support sequential inference; an optional exercise explains what a second round changes.
+
+**Run locally:** this notebook requires PythonCall, PyTorch and `sbi`; it is not rendered on the course website. Enable the environment below, then press the numbered buttons in order. Opening it does not launch the simulation or training budgets. First-time Python setup may download packages; subsequent stages can take several minutes depending on your computer.
+
+**Before running:** predict which coefficient could be hardest to identify from two aggregate series. What would a broad posterior mean?
 """
 
 # ╔═╡ fe47a376-aeb2-11f1-b61a-afb43896f469
@@ -47,502 +49,542 @@ begin
     import Pkg
     Pkg.activate(dirname(@__FILE__))
     import BeforeIT as Bit
+    using PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
+end
 
-    # Python goes first, and torch is imported here rather than left to the sbi
-    # cell below. torch pulls in pyexpat, which must bind to conda's libexpat.
-    # On Linux the dynamic linker resolves symbols globally, so if Plots loads
-    # first it drags in Julia's Expat_jll and pyexpat binds to that instead,
-    # dying with "undefined symbol: XML_SetHashSalt16Bytes". Importing torch
-    # before Plots gets pyexpat bound correctly and everything else follows.
-    using PythonCall
-    pyimport("torch")
 
-    using Plots, PlutoUI, Statistics, Distributions, LinearAlgebra, Random, Dates
+# ╔═╡ f0050000-0000-4000-8000-000000000001
+md"""
+**Enable the local Python and plotting environment:** $(@bind enable_inference PlutoUI.CheckBox(default=false))
+
+Leave this unchecked to read the explanations. Check it when ready to run; initialise the observation before starting ABC or neural inference.
+"""
+
+# ╔═╡ f0050000-0000-4000-8000-000000000002
+begin
+    python_ready = if enable_inference
+        # Import torch before Plots: on Linux this avoids pyexpat binding to
+        # Julia's Expat_jll instead of conda's libexpat.
+        using PythonCall
+        pyimport("torch")
+        using Plots
+        true
+    else
+        false
+    end
+    python_ready ? md"Local environment loaded. Continue to the observation button in Section 4." :
+        md"Reading mode: Python setup, simulations and training are disabled."
 end
 
 # ╔═╡ fe47a3e4-aeb2-11f1-8672-87cfc7b65656
 md"""
 ---
-## 1 — The likelihood problem
+## 1 — What is missing from ordinary Bayesian inference?
 
-Recall from Lecture 2: to do Bayesian inference we want
+Bayes' rule combines a prior with the likelihood:
 
-$$p(\theta \mid x_{\text{obs}}) \propto p(x_{\text{obs}} \mid \theta)\, p(\theta)$$
+$$p(\theta \mid x_{\mathrm{obs}}) \propto p(x_{\mathrm{obs}} \mid \theta)\,p(\theta).$$
 
-For the ABM, $p(x \mid \theta)$ is **intractable** — we can *simulate* $x \sim \text{ABM}(\theta)$ but cannot *evaluate* the likelihood at any specific $x$.
+The **prior** describes plausible coefficients before these observations. The **likelihood** measures how plausible the observed data are under a particular coefficient vector. The **posterior** updates the prior using that likelihood.
 
-Standard methods fail:
-- **MCMC** needs the likelihood at every proposal step.
-- **Variational inference** needs the likelihood in the ELBO expectation.
-- **Grid search** is exponential in the number of parameters.
+We can run the stochastic ABM to generate $x$ at a chosen $\theta$, but cannot evaluate its likelihood directly. Standard likelihood-based MCMC and variational inference therefore need an alternative target. SBI constructs an approximation using repeated simulations. MCMC can still be used later, on an estimated likelihood ratio.
 
-What works: **likelihood-free** methods that only need a simulator.
+**Pause and check:** an ABM run gives one possible trajectory. Does that tell us the probability density of the observed trajectory? Explain why simulation and likelihood evaluation are different tasks.
 """
 
 # ╔═╡ fe47a3f8-aeb2-11f1-bb78-fdae608fd8dd
 md"""
 ---
-## 2 — Define the target parameters and observed data
+## 2 — Specify the statistical experiment first
 
-We calibrate the three CANVAS pass-through coefficients from Notebook 04:
+The unknown coefficients are
 
-$$\theta = (\phi^{DP},\, \phi^{CP},\, \phi^{AE}) \in [0, 1]^3$$
+$$\theta=(\phi^{DP},\phi^{CP},\phi^{AE})\in[0,1]^3.$$
 
-**Observed data $x_{\text{obs}}$:** the macroeconomic time series produced by a forward run of the model at the true $\theta$. Following Wiese et al. (2023), we pass raw trajectories directly to the neural network rather than hand-crafted scalars — the network learns which features identify the parameters.
+| Field in Julia | Pricing channel | Meaning of a larger value |
+|---|---|---|
+| `dp` | Demand pull | Stronger response to the firm's excess-demand price signal |
+| `cp` | Cost push | Stronger response to the cost-inflation signal |
+| `ae` | Aggregate expectations | Stronger response to expected inflation |
 
-Note that averaging over Monte Carlo paths *is* itself a summary-statistic choice: it discards the cross-path dispersion, so any parameter identified mainly through volatility rather than through the mean path will be harder to recover here.
+We use independent uniform priors on these three intervals. All other parameters, initial conditions and the pricing mechanism are held fixed. The resulting posterior is **conditional on these choices**; it does not include uncertainty about every ABM parameter or about the mechanism itself.
 
-We use two observable series over $T$ quarters:
-- Quarter-by-quarter **GDP deflator inflation** (period-over-period price level change)
-- Quarter-by-quarter **real GDP growth**
+One simulator output contains $T$ quarterly GDP-deflator inflation rates followed by $T$ real-GDP growth rates. Each rate is averaged over `N_paths` simulated economies. Thus $x$ has length $2T$ and is a summary of an ensemble, rather than a complete ABM state.
 
-giving a $2T$-dimensional summary statistic. In a real application $x_{\text{obs}}$ would come from empirical data; here we use a synthetic simulation at known $\theta_{\text{true}}$ as the target.
+**Match observations to simulations:** the synthetic observation uses the same horizon, units, averaging and number of paths as every training example, with a separate seed. Averaging discards cross-path variation. For an empirical application, specify how one observed economy, measurement errors and data transformations are represented by the simulator; an average of simulated economies is not a substitute for that observation model.
 """
 
 # ╔═╡ fe47a416-aeb2-11f1-9746-851acfeb8207
 begin
-    # Scale=0.0001 gives 481 firms across 62 sectors — small enough for SBI budgets.
-    # Finite-size noise is handled by MC averaging:
-    #   N_obs   — large, for x_obs; mimics empirical data aggregated over many draws.
-    #   N_paths — smaller, for each training simulation; balances noise vs. runtime.
-    #
-    # N_obs > N_paths is deliberate and helps: the distance ‖x_sim - x_obs‖
-    # carries variance from BOTH terms, so a smoother x_obs removes one of the
-    # two noise sources. Measured over 12 replications at scale 0.0001,
-    # T_sim = 12: with N_obs = 64 the distance at the true θ is 0.0196 ± 0.003
-    # against 0.0459 ± 0.006 at a wrong θ (8.8σ separation); setting
-    # N_obs = N_paths = 8 degrades that to 5.4σ.
-    #
-    # The caveat is interpretive, not numerical. Real data is a SINGLE
-    # realisation, so a posterior conditioned on a 64-path average is tighter
-    # than one conditioned on an actual economy would be. Read the posteriors
-    # below as "what could be recovered from an idealised, noise-averaged
-    # observation", not as an empirical uncertainty estimate.
+    # Small population and demonstration budgets: enough to practise the
+    # workflow, not a claim of accurate posterior coverage.
     parameters, init_cond = Bit.get_params_and_initial_conditions(
-        Bit.ITALY_CALIBRATION, DateTime(2010, 3, 31); scale = 0.0001)
-
-    # "True" pass-through values (we will try to recover these)
-    θ_true = (dp = 0.2, cp = 0.5, ae = 0.7)
-
-    T_sim   = 12
-    N_obs   = 64  # MC replications for x_obs — large N gives a smooth "empirical" target
-    N_paths = 8   # MC replications for each training simulation (speed/quality trade-off)
-    """Setup complete — $(round(Int, sum(parameters["I_s"]))) firms across $(length(parameters["I_s"])) sectors, H_act=$(round(Int, parameters["H_act"])). True θ = $(θ_true)"""
+        Bit.ITALY_CALIBRATION, DateTime(2010, 3, 31); scale=0.0001)
+    θ_true = (dp=0.2, cp=0.5, ae=0.7)
+    T_sim = 12
+    N_paths = 4
+    N_obs = N_paths  # same observation distribution as the training simulator
+    N_abc = 100
+    N_sbi = 200
+    "Setup: $(round(Int, sum(parameters["I_s"]))) firms; T=$(T_sim), $(N_paths) paths per output. Synthetic truth: $(θ_true)."
 end
 
 # ╔═╡ fe47a420-aeb2-11f1-8d8a-abc5ec0d8da6
 md"""
 ---
-## 3 — The simulator function $\theta \mapsto x$
+## 3 — Build the bridge from coefficients to data
 
-The simulator runs the CANVAS model at given $\theta$ for $T$ quarters and returns the concatenated inflation and real-GDP-growth time series — a $2T$-dimensional vector.
-Each training simulation uses $N$ Monte Carlo paths; averaging reduces noise while keeping runtime tractable.
+Read `summarise` in four steps:
+
+1. Set the three pricing coefficients and reset the simulation seed.
+2. Build fresh CANVAS economies and run each for `T` quarters.
+3. Compute percentage changes from GDP levels and deflators.
+4. Average the rates across paths and concatenate `[inflation; gdp_growth]`.
+
+The output is in **fractions**, so `0.01` means 1% quarterly growth. Plotting multiplies by 100; estimation uses the fractions. Fresh models prevent one parameter draw from inheriting the final state of another.
+
+`parallel=false` makes this small example reproducible with a single seeded random stream. Parameter draws use a separate RNG. The shared `CANVAS_PHI` reference means that calls at different coefficients must run serially.
 """
 
 # ╔═╡ fe47a436-aeb2-11f1-9b2a-3f8bba375ef7
 begin
-    # Same CANVAS model as Notebook 04, loaded from the shared file rather than
-    # restated here. This notebook calibrates the pass-through coefficients that
-    # notebook set by hand.
     include(joinpath(@__DIR__, "canvas_model.jl"))
-    "CANVASModel, its pricing override and build_canvas_model loaded ✓"
+    "Shared CANVAS pricing rule and model builder loaded."
 end
 
 # ╔═╡ fe47a43e-aeb2-11f1-8236-cf09de2a48a6
 begin
-    # Simulator: plain forward run at θ, returns concatenated [inflation; gdp_growth] (2T values).
-    # Following Wiese et al. (2023) — raw trajectories, no hand-crafted statistics.
     function summarise(θ; seed=1, N=N_paths, T=T_sim, p=parameters, ic=init_cond)
+        keys(θ) == (:dp, :cp, :ae) || throw(ArgumentError("Use (dp=..., cp=..., ae=...)."))
+        all(v -> isfinite(v) && 0 <= v <= 1, values(θ)) ||
+            throw(ArgumentError("Pass-through coefficients must be finite and in [0,1]."))
+        N >= 1 && T >= 1 || throw(ArgumentError("N and T must be positive."))
         CANVAS_PHI[] = θ
         Random.seed!(seed)
-        ms = Bit.ensemblerun!((build_canvas_model(p, ic) for _ in 1:N), T)
-
-        _defl(m) = m.data.nominal_gdp ./ m.data.real_gdp
-        inflation = mean([diff(_defl(m))     ./ _defl(m)[1:end-1]      for m in ms])
+        ms = Bit.ensemblerun!((build_canvas_model(p, ic) for _ in 1:N), T;
+                             parallel=false)
+        deflator(m) = m.data.nominal_gdp ./ m.data.real_gdp
+        inflation = mean([diff(deflator(m)) ./ deflator(m)[1:end-1] for m in ms])
         gdp_growth = mean([diff(m.data.real_gdp) ./ m.data.real_gdp[1:end-1] for m in ms])
-
-        return vcat(inflation, gdp_growth)   # 2T-dimensional vector
+        x = vcat(inflation, gdp_growth)
+        length(x) == 2T || error("Expected 2T rates. Check t=0 data collection in the model builder.")
+        all(isfinite, x) || error("Non-finite output: investigate the simulation before fitting.")
+        return x
     end
-
-    "Simulator function defined ✓"
+    "Simulator defined: NamedTuple coefficients → a finite vector of 2T rates."
 end
 
 # ╔═╡ fe47a448-aeb2-11f1-8128-47d32eec72fc
 md"""
 ---
-## 4 — Generate observed data at the true θ
+## 4 — Create the held-out synthetic observation
+
+Press the button once. Seed `42` belongs only to this observation; ABC and neural training use different seeds. The estimator will see `x_obs`, not `θ_true`. The red lines in later figures reveal the truth to us for interpretation.
+
+**Read the plots:** are these rates or levels? Which quarters seem most informative about the pricing response? One recovered coefficient vector at one seed is a useful smoke check, not evidence of calibrated uncertainty or empirical validity.
 """
 
 # ╔═╡ fe47a45c-aeb2-11f1-8796-d9a46d0f705f
-@bind run_xobs PlutoUI.Button("▶ Generate x_obs at true θ (1–2 min)")
+@bind run_xobs PlutoUI.CounterButton("1 — Generate the synthetic observation")
 
 # ╔═╡ fe47a470-aeb2-11f1-b509-5733fe3f376e
 begin
-    run_xobs
-    x_obs = summarise(θ_true, seed=42, N=N_obs)
+    x_obs = if python_ready && run_xobs > 0
+        summarise(θ_true; seed=42, N=N_obs)
+    else
+        nothing
+    end
     T_obs = T_sim
-    p_infl = plot(x_obs[1:T_obs] .* 100,
-        xlabel="Quarter", ylabel="Inflation (%)", title="GDP deflator inflation",
-        label="", lw=2, color=:steelblue, marker=:circle, markersize=3)
-    hline!(p_infl, [0], lw=1, color=:black, linestyle=:dash, label="")
-    p_gdp = plot(x_obs[T_obs+1:end] .* 100,
-        xlabel="Quarter", ylabel="Growth (%)", title="Real GDP growth",
-        label="", lw=2, color=:darkorange, marker=:circle, markersize=3)
-    hline!(p_gdp, [0], lw=1, color=:black, linestyle=:dash, label="")
-    plot(p_infl, p_gdp, layout=(1,2), size=(800,300),
-         plot_title="x_obs at true θ=$(θ_true)")
+    if x_obs === nothing
+        md"Enable the local environment and press button 1 to generate the observation."
+    else
+        p_infl = plot(1:T_obs, x_obs[1:T_obs] .* 100,
+            xlabel="Quarter", ylabel="Inflation (%)", title="GDP-deflator inflation",
+            label="", lw=2, color=:steelblue, marker=:circle, markersize=3)
+        hline!(p_infl, [0], color=:black, linestyle=:dash, label="")
+        p_gdp = plot(1:T_obs, x_obs[T_obs+1:end] .* 100,
+            xlabel="Quarter", ylabel="Growth (%)", title="Real GDP growth",
+            label="", lw=2, color=:darkorange, marker=:circle, markersize=3)
+        hline!(p_gdp, [0], color=:black, linestyle=:dash, label="")
+        plot(p_infl, p_gdp, layout=(1,2), size=(800,300),
+             plot_title="Synthetic observation: $(N_obs)-path average")
+    end
 end
 
 # ╔═╡ fe47a484-aeb2-11f1-ab62-c9fb038b7b75
 md"""
 ---
-## 5 — Approximate Bayesian Computation (ABC baseline)
+## 5 — ABC: retain simulations close to the observation
 
-ABC accepts simulations where $\|x_{\text{sim}} - x_{\text{obs}}\| < \epsilon$.
+**Approximate Bayesian Computation** makes the comparison explicit:
 
-This is the simplest likelihood-free method — and the least efficient. The acceptance rate drops exponentially as the dimension of $\theta$ grows. For the 3-parameter problem here, we need a large simulation budget.
+1. Draw coefficients from the prior.
+2. Simulate an output using exactly the observation protocol above.
+3. Measure $d(x_i,x_{\mathrm{obs}})=\|x_i-x_{\mathrm{obs}}\|_2$.
+4. Keep coefficients whose distance is below a tolerance $\epsilon$.
+
+The accepted draws approximate a posterior conditional on this data representation, distance and tolerance. A histogram displays these draws; the histogram is not the inference algorithm.
+
+Smaller tolerances make the comparison stricter and usually leave fewer draws. High-dimensional outputs and weak identification can make useful acceptance rates difficult to achieve. There is no universal simulation budget or exponential acceptance law determined only by the number of parameters.
+
+**Before pressing:** inflation and growth are both rates, but their typical variation can differ. With an unscaled Euclidean distance, which series could dominate? Standardising using training simulations is an alternative, but changes what counts as a close match.
+
+The button generates a bank of distances once. Move the tolerance slider afterwards to reuse that bank without rerunning the ABM.
 """
 
 # ╔═╡ fe47a48e-aeb2-11f1-ba58-7f92563411e7
-@bind run_abc PlutoUI.Button("▶ Run ABC (100 simulations, ~5 min)")
+@bind run_abc PlutoUI.CounterButton("2 — Generate the ABC bank (100 parameter draws)")
 
 # ╔═╡ fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
 begin
-    run_abc
-
-    N_abc = 100
-    # ε is in the same units as the 2T-dim trajectory norm. Calibrated by
-    # measurement rather than by a scale argument: at scale 0.0001 with
-    # T_sim = 12, ‖x_obs‖ ≈ 0.085, and ‖x_sim - x_obs‖ is 0.0196 ± 0.003 at
-    # the true θ against 0.0459 ± 0.006 at a badly wrong one. ε = 0.03 sits
-    # between them — over 12 replications it accepted 12/12 at the true θ and
-    # 0/12 at the wrong θ.
-    ε = 0.03
-
-    Random.seed!(808)
-    prior_samples = [(dp = rand(), cp = rand(), ae = rand()) for _ in 1:N_abc]
-    abc_accepted  = NamedTuple{(:dp,:cp,:ae)}[]
-
-    # Seed by loop index, matching the NPE section below. The previous version
-    # used seed = rand(1:1000): `summarise` reseeds the global RNG on every
-    # call, so each draw came from a stream that call had just reset, and 100
-    # draws from 1000 values collide with ~99% probability — different θ
-    # silently sharing a random stream.
-    for (i, θ) in enumerate(prior_samples)
-        x_sim = summarise(θ; seed = 1000 + i, N = N_paths)
-        dist  = norm(x_sim .- x_obs)
-        if dist < ε
-            push!(abc_accepted, θ)
+    abc_bank = if python_ready && run_abc > 0 && x_obs !== nothing
+        let rng = Xoshiro(808)
+            draws = [(dp=rand(rng), cp=rand(rng), ae=rand(rng)) for _ in 1:N_abc]
+            # Prior draws are made independently of summarise's global RNG resets.
+            distances = [norm(summarise(θ; seed=10_000+i) .- x_obs)
+                         for (i, θ) in enumerate(draws)]
+            (parameters=draws, distances=distances)
         end
+    else
+        nothing
     end
-
-    n_accepted = length(abc_accepted)
-    accept_rate = n_accepted / N_abc * 100
-
-    md"""
-    ABC: **$(n_accepted) / $(N_abc)** samples accepted ($(round(accept_rate, digits=1))% acceptance rate, ε=$(ε)).
-
-    A higher ε gives more accepted samples but a looser posterior.
-    A lower ε gives a tighter posterior but fewer samples.
-    With 3 parameters, the curse of dimensionality means you need an enormous simulation budget to get a useful posterior — this is why NPE (Section 6) is so much more efficient.
-    """
+    abc_bank === nothing ? md"Generate the observation, then press button 2. ABC is optional before the neural methods." :
+        md"Computed $(length(abc_bank.distances)) distances. Try the tolerance slider; it does not launch new simulations."
 end
+
+
+# ╔═╡ f0050000-0000-4000-8000-000000000003
+md"""
+ABC tolerance $\epsilon$: $(@bind ε PlutoUI.Slider(0.005:0.005:0.10; default=0.03, show_value=true))
+
+This is an illustrative starting value in trajectory-norm units, not a validated tolerance.
+"""
 
 # ╔═╡ fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
 begin
-    run_abc
-    if length(abc_accepted) >= 3
-        dp_vals = [s.dp for s in abc_accepted]
-        cp_vals = [s.cp for s in abc_accepted]
-        ae_vals = [s.ae for s in abc_accepted]
-
-        p1_abc = histogram(dp_vals, bins=10, title="ABC posterior: ϕ^DP",
-                       xlabel="ϕ^DP", label="", color=:steelblue, alpha=0.7)
-        vline!(p1_abc, [θ_true.dp], lw=2, color=:red, label="True")
-        p2_abc = histogram(cp_vals, bins=10, title="ABC posterior: ϕ^CP",
-                       xlabel="ϕ^CP", label="", color=:steelblue, alpha=0.7)
-        vline!(p2_abc, [θ_true.cp], lw=2, color=:red, label="True")
-        p3_abc = histogram(ae_vals, bins=10, title="ABC posterior: ϕ^AE",
-                       xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
-        vline!(p3_abc, [θ_true.ae], lw=2, color=:red, label="True")
-        plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(800, 280))
+    abc_accepted = abc_bank === nothing ? NamedTuple[] :
+        abc_bank.parameters[abc_bank.distances .< ε]
+    n_accepted = length(abc_accepted)
+    if abc_bank === nothing
+        md"No ABC bank yet."
+    elseif n_accepted < 3
+        md"ABC accepted **$(n_accepted)/$(N_abc)** draws at ε=$(ε). Too few draws to interpret a marginal histogram. Increase the tolerance to explore the stored bank."
     else
-        md"Not enough ABC samples accepted — try increasing ε or N_abc."
+        p1_abc = histogram([s.dp for s in abc_accepted], bins=10, xlims=(0,1),
+            title="Demand pull", xlabel="ϕ^DP", label="Accepted", color=:steelblue, alpha=0.7)
+        vline!(p1_abc, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_abc = histogram([s.cp for s in abc_accepted], bins=10, xlims=(0,1),
+            title="Cost push", xlabel="ϕ^CP", label="", color=:steelblue, alpha=0.7)
+        vline!(p2_abc, [θ_true.cp], color=:red, lw=2, label="")
+        p3_abc = histogram([s.ae for s in abc_accepted], bins=10, xlims=(0,1),
+            title="Expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
+        vline!(p3_abc, [θ_true.ae], color=:red, lw=2, label="")
+        plot(p1_abc, p2_abc, p3_abc, layout=(1,3), size=(800,280),
+             plot_title="ABC: $(n_accepted)/$(N_abc) accepted at ε=$(ε)")
     end
 end
 
 # ╔═╡ fe47a4c8-aeb2-11f1-b2eb-316721706547
 md"""
 ---
-## 6 — Neural Posterior Estimation (NPE): the key idea
+## 6 — NPE: learn a conditional density from simulated pairs
 
-Lecture 2 describes NPE from Dyer et al. (2024):
+**Neural Posterior Estimation** replaces the acceptance rule with a learned distribution:
 
-1. **Sample** $\theta_i \sim p(\theta)$ (prior), **simulate** $x_i \sim \text{ABM}(\theta_i)$ — build dataset $\{(\theta_i, x_i)\}$.
-2. **Train** a neural network $q_\phi(\theta \mid x)$ (a normalising flow) on this dataset:
-   $$\hat\phi = \arg\max_\phi \sum_i \log q_\phi(\theta_i \mid x_i)$$
-3. **Query** at the observed data: sample $\theta \sim q_{\hat\phi}(\theta \mid x_{\text{obs}})$.
+1. Draw $\theta_i$ from the prior and simulate $x_i$.
+2. Fit a conditional density $q_\eta(\theta\mid x)$ by maximising
+   $$\sum_i \log q_\eta(\theta_i\mid x_i).$$
+3. Condition the fitted density on `x_obs` and draw candidate coefficient vectors.
 
-The network learns a **density** over $\theta$ conditioned on $x$. Once trained (offline), it is amortised: any new $x_{\text{obs}}$ gets an instant posterior without rerunning the ABM.
+Here a normalising flow is the density model: it transforms a simple distribution into a flexible distribution over the three coefficients. Training estimates how coefficients and outputs relate across the simulated examples. It does not make unidentified coefficients identifiable, and a small simulation budget can produce a poor approximation.
 
-**Sequential NPE (SNPE)** iteratively refines by using the current posterior as the next proposal, concentrating simulations near the posterior mode. The Lecture 2 algorithm box shows the importance-reweighted loss that corrects for the shifted proposal.
+A prior-trained, **single-round** estimator can be reused for observations represented by the same simulator within its training domain. Sampling is usually fast after training, with rejection of draws outside the bounded prior support.
+
+**Sequential NPE** adds rounds targeted to a particular observation. Draw new coefficients from the current posterior, simulate, and retrain with the appropriate proposal correction. This changes the training distribution; treating those draws as prior draws would give the wrong target. See the [official sequential guide](https://sbi.readthedocs.io/en/latest/how_to_guide/02_multiround_inference.html).
 """
 
 # ╔═╡ fe47a4de-aeb2-11f1-a8a6-8dd6f18757b5
 md"""
 ---
-## 7 — Running SNPE and SNRE with Python `sbi` via PythonCall
+## 7 — Run one round of NPE and NRE-B with `sbi`
 
-We call the [Mackelab `sbi` package](https://github.com/mackelab/sbi) directly from Julia using `PythonCall.jl`.
-`CondaPkg.toml` in this directory declares `sbi>=0.23` as a pip dependency — Julia resolves it automatically.
+Julia runs the economies. PythonCall passes the resulting arrays to Python's [`sbi`](https://sbi.readthedocs.io/) library. `CondaPkg.toml` specifies `sbi>=0.26`; the enable checkbox triggers Python setup.
 
-Two algorithms:
-- **SNPE-C** (`sbi.inference.SNPE`): fits a normalising flow $q_\phi(\theta \mid x)$ by maximum likelihood on simulated pairs. Posterior evaluation is cheap (one forward pass).
-- **SNRE-B** (`sbi.inference.SNRE`): trains a binary classifier to distinguish joint draws $(\theta, x) \sim p(\theta)p(x|\theta)$ from marginal draws $(\theta, x) \sim p(\theta)p(x)$. The log-ratio approximates $\log p(x|\theta)/p(x)$. Sampling requires MCMC because only the unnormalised ratio is available.
+| Method | What is trained? | How are posterior draws obtained here? |
+|---|---|---|
+| NPE, using the SNPE-C engine | A density of coefficients conditional on outputs | Draw from the flow, reject outside the prior |
+| NRE-B, using the SNRE-B engine | A compatibility score based on a likelihood-to-evidence ratio | Combine the score with the prior and run MCMC |
 
-**Workflow (both methods share steps 1–2):**
-1. Import `sbi` via PythonCall and define a uniform prior.
-2. Generate `N_sbi` simulation pairs $\{(\theta_i, x_i)\}$ entirely in Julia, then hand the arrays to `sbi`.
-3. Train the density estimator / classifier.
-4. Draw posterior samples and plot.
+Both methods reuse **the same neural training bank**. They need no new ABM runs while fitting their networks. ABC has its own smaller bank for the tolerance exercise, so these demonstration budgets do not constitute a fair efficiency comparison.
+
+Run button 3 to generate pairs, then button 4 for NPE. Button 5 for NRE is optional. Keep the small default budgets first; inspect failures and diagnostics before paying for larger runs.
 """
 
 # ╔═╡ fe47a4e8-aeb2-11f1-a0c6-cf432609d50c
 begin
-    _torch     = pyimport("torch")
-    _np        = pyimport("numpy")
-    _sbi_inf   = pyimport("sbi.inference")
-    _sbi_utils = pyimport("sbi.utils")
-    _mcmc_par  = pyimport("sbi.inference.posteriors.posterior_parameters").MCMCPosteriorParameters
-    md"Python `sbi` imports ✓  (torch $(pyconvert(String, _torch.__version__)))"
+    _torch, _np, _sbi_inf, _sbi_utils, _mcmc_par = if python_ready
+        (pyimport("torch"), pyimport("numpy"), pyimport("sbi.inference"),
+         pyimport("sbi.utils"),
+         pyimport("sbi.inference.posteriors.posterior_parameters").MCMCPosteriorParameters)
+    else
+        (nothing, nothing, nothing, nothing, nothing)
+    end
+    python_ready ? md"Python inference imports ready (torch $(pyconvert(String, _torch.__version__)))." :
+        md"Python inference imports are disabled in reading mode."
 end
 
 # ╔═╡ fe47a4f2-aeb2-11f1-b056-f167b82071b2
 md"""
----
-### Step 1 — Generate simulation pairs $\{(\theta_i, x_i)\}$
+### Step 1 — Generate training pairs and inspect the dimensions
 
-We draw $\theta_i \sim \text{Uniform}([0,1]^3)$ and evaluate the `summarise` function in Julia.
-The resulting matrices are converted to PyTorch tensors via NumPy's buffer protocol.
+Every row of the coefficient matrix is `[dp, cp, ae]`. The corresponding row of the output matrix is `[T inflation rates; T growth rates]`.
 
-> **Note:** 500 simulations at `N_paths = 8` MC paths each takes roughly 5–10 minutes.
-> Increase `N_sbi` for a tighter posterior; decrease for quick exploration.
+For the default `N_sbi=200` and `T_sim=12`, the shapes are **200 × 3** and **200 × 24**. Conversion to `Float32` matches PyTorch's default training precision; it does not change the meaning or units of the observations.
+
+Failed or non-finite simulations are reported and **block training**. Silently deleting parameter-dependent failures can change the distribution being estimated. Diagnose the model or observation protocol first. The error messages below give the first few affected draws.
 """
 
 # ╔═╡ fe47a506-aeb2-11f1-a7b7-5308423c8cfe
-@bind run_sbi_sims PlutoUI.Button("▶ Step 1 — Generate simulations (~5–10 min)")
+@bind run_sbi_sims PlutoUI.CounterButton("3 — Generate neural training pairs (200 draws)")
 
 # ╔═╡ fe47a510-aeb2-11f1-a698-ef70514f417b
 begin
-    run_sbi_sims
-
-    N_sbi = 500
-    Random.seed!(99)
-    _θ_sbi, _x_sbi, _n_failed = let
-        θs = NamedTuple{(:dp,:cp,:ae),Tuple{Float64,Float64,Float64}}[]
-        xs = Vector{Float32}[]
-        n  = 0
-        for i in 1:N_sbi
-            θ = (dp=rand(), cp=rand(), ae=rand())
-            try
-                x = Float32.(summarise(θ; N=N_paths, seed=i))
-                if !any(isnan, x) && !any(isinf, x)
-                    push!(θs, θ); push!(xs, x)
-                else
-                    n += 1
+    sbi_bank = if python_ready && run_sbi_sims > 0 && x_obs !== nothing
+        let rng = Xoshiro(99)
+            draws = [(dp=rand(rng), cp=rand(rng), ae=rand(rng)) for _ in 1:N_sbi]
+            θs = typeof(θ_true)[]
+            xs = Vector{Float32}[]
+            failures = String[]
+            for (i, θ) in enumerate(draws)
+                try
+                    x = Float32.(summarise(θ; seed=20_000+i))
+                    all(isfinite, x) || error("Conversion produced a non-finite output.")
+                    push!(θs, θ)
+                    push!(xs, x)
+                catch err
+                    err isa InterruptException && rethrow()
+                    push!(failures, "draw $(i), θ=$(θ): $(sprint(showerror, err))")
                 end
-            catch
-                n += 1
             end
+            (parameters=θs, outputs=xs, failures=failures)
         end
-        θs, xs, n
+    else
+        nothing
     end
-
-    # Build (N, 3) and (N, 2T) Float32 matrices
-    _θ_mat = Float32.(reduce(vcat, [[t.dp t.cp t.ae] for t in _θ_sbi]))  # N×3
-    _x_mat = Float32.(reduce(vcat, [x' for x in _x_sbi]))                # N×(2T)
-
-    # Convert to PyTorch tensors via NumPy (PythonCall supports Julia array buffer protocol)
-    _θ_tensor   = _torch.from_numpy(_np.asarray(_θ_mat, dtype=_np.float32))
-    _x_tensor   = _torch.from_numpy(_np.asarray(_x_mat, dtype=_np.float32))
-    _x_obs_t    = _torch.tensor(Float32.(x_obs)).unsqueeze(0)  # shape (1, 2T)
-
-    _sbi_prior = _sbi_utils.BoxUniform(
-        low  = _torch.zeros(3, dtype=_torch.float32),
-        high = _torch.ones(3, dtype=_torch.float32)
-    )
-
-    md"Generated **$(length(_θ_sbi)) / $(N_sbi)** simulation pairs ✓  ($(_n_failed) skipped due to NaN/error)"
+    _n_failed = sbi_bank === nothing ? 0 : length(sbi_bank.failures)
+    _sbi_ready = sbi_bank !== nothing && _n_failed == 0 && length(sbi_bank.parameters) >= 50
+    _θ_mat, _x_mat, _θ_tensor, _x_tensor, _x_obs_t, _sbi_prior = if _sbi_ready
+        let θmat=Float32.(reduce(vcat, [[t.dp t.cp t.ae] for t in sbi_bank.parameters])),
+            xmat=reduce(vcat, [permutedims(x) for x in sbi_bank.outputs])
+            θtensor = _torch.from_numpy(_np.asarray(θmat, dtype=_np.float32))
+            xtensor = _torch.from_numpy(_np.asarray(xmat, dtype=_np.float32))
+            xobs = _torch.tensor(Float32.(x_obs))
+            prior = _sbi_utils.BoxUniform(low=_torch.zeros(3), high=_torch.ones(3))
+            (θmat, xmat, θtensor, xtensor, xobs, prior)
+        end
+    else
+        (nothing, nothing, nothing, nothing, nothing, nothing)
+    end
+    if sbi_bank === nothing
+        md"Generate the observation, then press button 3."
+    elseif _n_failed > 0
+        md"Training blocked: **$(_n_failed)/$(N_sbi)** simulations failed. First errors: $(join(first(sbi_bank.failures, min(3, _n_failed)), " | "))."
+    elseif !_sbi_ready
+        md"Use at least 50 valid examples for this demonstration. A small training set is not a posterior-accuracy guarantee."
+    else
+        md"Training bank ready: coefficient matrix **$(size(_θ_mat))**, output matrix **$(size(_x_mat))**; no failed draws."
+    end
 end
 
 # ╔═╡ fe47a51a-aeb2-11f1-b61f-b1712369fe7d
 md"""
----
-### Step 2a — SNPE-C (Sequential Neural Posterior Estimation)
+### Step 2a — Fit NPE, condition on the observation, sample
 
-`sbi` trains a **masked autoregressive flow** (MAF) as the density estimator.
-After training we call `posterior.sample(n, x=x_obs)` — no MCMC needed, one forward pass.
+Read the next cell as **append → train → build → condition → sample**. The SNPE-C engine receives only one prior-sampled bank here, so this is single-round NPE.
+
+Training stops after a capped number of epochs or lack of improvement on held-out training examples. That validation loss checks network fitting; it does not validate the economics. Fixed seeds make this run repeatable. They do not establish robustness across network initialisations or simulated observations.
+
+**Read the histograms:** a red truth line near substantial posterior mass is encouraging. A narrow peak away from it is a failure to investigate. Also inspect parameter correlations: similar marginal widths can conceal very different trade-offs between the three pricing channels.
 """
 
 # ╔═╡ fe47a52e-aeb2-11f1-850a-c7a03de04063
-@bind run_snpe PlutoUI.Button("▶ Step 2a — Train SNPE and sample (~1–2 min)")
+@bind run_snpe PlutoUI.CounterButton("4 — Train NPE and draw posterior samples")
 
 # ╔═╡ fe47a538-aeb2-11f1-ac52-bdf95b720ba4
 begin
-    run_snpe; run_sbi_sims   # ensure simulations exist
-
-    # Seed torch as well as Julia: Random.seed!(99) above fixes the simulated
-    # training pairs, but the flow's weight initialisation and batch shuffling
-    # come from torch's RNG. Without this the posterior moves between runs.
-    _torch.manual_seed(0)
-    snpe_engine  = _sbi_inf.SNPE(prior=_sbi_prior)
-    snpe_engine.append_simulations(_θ_tensor, _x_tensor)
-    snpe_de      = snpe_engine.train()
-    snpe_post_py = snpe_engine.build_posterior(snpe_de)
-
-    snpe_raw     = snpe_post_py.sample([1000], x=_x_obs_t)
-    snpe_samples = pyconvert(Matrix{Float64}, snpe_raw.detach().cpu().numpy())
-
-    md"SNPE: **$(size(snpe_samples, 1)) posterior samples** drawn ✓"
+    snpe_engine, snpe_post_py, snpe_samples = if python_ready && run_snpe > 0 && _sbi_ready
+        let
+            _torch.manual_seed(0)
+            engine = _sbi_inf.SNPE(prior=_sbi_prior)
+            engine.append_simulations(_θ_tensor, _x_tensor)
+            estimator = engine.train(max_num_epochs=100, stop_after_epochs=10,
+                                     show_train_summary=true)
+            posterior = engine.build_posterior(estimator).set_default_x(_x_obs_t)
+            raw = posterior.sample([1000])
+            samples = pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
+            (engine, posterior, samples)
+        end
+    else
+        (nothing, nothing, nothing)
+    end
+    snpe_samples === nothing ? md"Generate a valid training bank, then press button 4." :
+        md"NPE produced **$(size(snpe_samples, 1)) approximate posterior draws**. Check the training summary and compare the three marginals below."
 end
 
 # ╔═╡ fe47a542-aeb2-11f1-86f9-154ba253a889
 begin
-    run_snpe; run_sbi_sims
-    if @isdefined(snpe_samples) && size(snpe_samples, 1) >= 2
-        p1_snpe = histogram(snpe_samples[:,1], bins=30, normalize=true,
-                       title="SNPE posterior: ϕ^DP", xlabel="ϕ^DP",
-                       label="Posterior", color=:steelblue, alpha=0.7)
-        vline!(p1_snpe, [θ_true.dp], lw=2, color=:red, label="True")
-        p2_snpe = histogram(snpe_samples[:,2], bins=30, normalize=true,
-                       title="SNPE posterior: ϕ^CP", xlabel="ϕ^CP",
-                       label="", color=:steelblue, alpha=0.7)
-        vline!(p2_snpe, [θ_true.cp], lw=2, color=:red, label="True")
-        p3_snpe = histogram(snpe_samples[:,3], bins=30, normalize=true,
-                       title="SNPE posterior: ϕ^AE", xlabel="ϕ^AE",
-                       label="", color=:steelblue, alpha=0.7)
-        vline!(p3_snpe, [θ_true.ae], lw=2, color=:red, label="True")
-        plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(800, 280), plot_title="SNPE-C posterior")
+    if snpe_samples === nothing
+        md"No NPE draws yet."
     else
-        md"Run SNPE first (Step 2a)."
+        p1_snpe = histogram(snpe_samples[:,1], bins=20, normalize=true, xlims=(0,1),
+            title="NPE: demand pull", xlabel="ϕ^DP", label="Approximate posterior", color=:steelblue, alpha=0.7)
+        vline!(p1_snpe, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_snpe = histogram(snpe_samples[:,2], bins=20, normalize=true, xlims=(0,1),
+            title="NPE: cost push", xlabel="ϕ^CP", label="", color=:steelblue, alpha=0.7)
+        vline!(p2_snpe, [θ_true.cp], color=:red, lw=2, label="")
+        p3_snpe = histogram(snpe_samples[:,3], bins=20, normalize=true, xlims=(0,1),
+            title="NPE: expectations", xlabel="ϕ^AE", label="", color=:steelblue, alpha=0.7)
+        vline!(p3_snpe, [θ_true.ae], color=:red, lw=2, label="")
+        plot(p1_snpe, p2_snpe, p3_snpe, layout=(1,3), size=(800,280))
     end
 end
 
 # ╔═╡ fe47a560-aeb2-11f1-9155-67117e02ae01
 md"""
----
-### Step 2b — SNRE-B (Sequential Neural Ratio Estimation)
+### Step 2b — NRE-B: learn which coefficients belong with an output
 
-SNRE trains a **binary classifier** $d_\phi(\theta, x)$ to distinguish joint samples from product-of-marginals samples.
-The Bayes-optimal classifier satisfies:
+**Neural Ratio Estimation** learns how compatible a coefficient vector is with the observed data. The target likelihood-to-evidence ratio is
 
-$$d_\phi(\theta, x) = \frac{p(\theta, x)}{p(\theta, x) + p(\theta)p(x)} \implies \log\frac{d_\phi}{1-d_\phi} = \log\frac{p(x|\theta)}{p(x)}$$
+$$r(\theta,x)=\frac{p(\theta,x)}{p(\theta)p(x)}=\frac{p(x\mid\theta)}{p(x)}.$$
 
-Because we only have the unnormalised ratio, sampling requires **MCMC** (here: slice sampling).
-This makes SNRE slower at sample time but it can be more robust when the summary statistic space is complex.
+For NRE-B, training presents an output with several candidate coefficient vectors: one generated that output and the others are independent alternatives. A **contrastive, one-out-of-K classifier** learns to recognise the compatible pair. This differs from the binary joint-versus-independent classifier used by NRE-A; see the [official NRE-B description](https://sbi.readthedocs.io/en/latest/api_reference/_autosummary/sbi.inference.NRE_B.html).
+
+At fixed `x_obs`, multiply the learned ratio by the prior to obtain an approximate posterior up to a normalising constant. Here `sbi` samples that target using slice MCMC. Other sampling choices exist; MCMC is the choice in this example, not a defining requirement of every ratio estimator.
+
+**Before running:** both methods see the same data. If NPE and NRE disagree, does that prove the economic model is wrong? Distinguish network approximation error, sampling error, weak identification and misspecification.
+
+The small MCMC run below illustrates the workflow. Its draws are correlated; a histogram alone does not check chain mixing or effective sample size.
 """
 
 # ╔═╡ fe47a574-aeb2-11f1-b9d3-15da0a71e396
-@bind run_snre PlutoUI.Button("▶ Step 2b — Train SNRE and sample via MCMC (~3–5 min)")
+@bind run_snre PlutoUI.CounterButton("5 — Train NRE-B and sample with MCMC (optional)")
 
 # ╔═╡ fe47a57e-aeb2-11f1-b49a-35077214ebb5
 begin
-    run_snre; run_sbi_sims   # ensure simulations exist
-
-    _torch.manual_seed(0)   # see the note in the SNPE cell
-    snre_engine  = _sbi_inf.SNRE(prior=_sbi_prior)
-    snre_engine.append_simulations(_θ_tensor, _x_tensor)
-    snre_cls     = snre_engine.train()
-    # sbi 0.26 deprecates the mcmc_parameters dict in favour of a typed
-    # PosteriorParameters object; the old form still works but warns and is
-    # slated for removal.
-    snre_post_py = snre_engine.build_posterior(
-        snre_cls,
-        mcmc_method          = "slice_np_vectorized",
-        posterior_parameters = _mcmc_par(num_chains = 4, thin = 5, warmup_steps = 100)
-    )
-
-    # Reseed before sampling: training above consumed the torch stream, and the
-    # slice sampler draws proposals from NumPy's RNG and chain inits from
-    # torch's. Seeding both is required — either alone still varies run to run.
-    _torch.manual_seed(0)
-    _np.random.seed(0)
-    snre_raw     = snre_post_py.sample([200], x=_x_obs_t)   # MCMC → fewer samples
-    snre_samples = pyconvert(Matrix{Float64}, snre_raw.detach().cpu().numpy())
-
-    md"SNRE: **$(size(snre_samples, 1)) posterior samples** via MCMC ✓"
+    snre_engine, snre_post_py, snre_samples = if python_ready && run_snre > 0 && _sbi_ready
+        let
+            _torch.manual_seed(0)
+            engine = _sbi_inf.SNRE_B(prior=_sbi_prior)
+            engine.append_simulations(_θ_tensor, _x_tensor)
+            classifier = engine.train(num_atoms=min(10, fld(length(sbi_bank.parameters), 10)), max_num_epochs=100,
+                                      stop_after_epochs=10, show_train_summary=true)
+            posterior = engine.build_posterior(classifier,
+                posterior_parameters=_mcmc_par(method="slice_np_vectorized",
+                    num_chains=4, thin=1, warmup_steps=100)).set_default_x(_x_obs_t)
+            _torch.manual_seed(0)
+            _np.random.seed(0)
+            raw = posterior.sample([200])
+            samples = pyconvert(Matrix{Float64}, raw.detach().cpu().numpy().reshape(-1, 3))
+            (engine, posterior, samples)
+        end
+    else
+        (nothing, nothing, nothing)
+    end
+    snre_samples === nothing ? md"Generate a valid training bank, then press button 5." :
+        md"NRE-B produced **$(size(snre_samples, 1)) MCMC draws** from an approximate posterior. These are not 200 independent observations."
 end
 
 # ╔═╡ fe47a588-aeb2-11f1-8e59-3947a4232ada
 begin
-    run_snre; run_sbi_sims
-    if @isdefined(snre_samples) && size(snre_samples, 1) >= 2
-        p1_snre = histogram(snre_samples[:,1], bins=20, normalize=true,
-                       title="SNRE posterior: ϕ^DP", xlabel="ϕ^DP",
-                       label="Posterior", color=:darkorange, alpha=0.7)
-        vline!(p1_snre, [θ_true.dp], lw=2, color=:red, label="True")
-        p2_snre = histogram(snre_samples[:,2], bins=20, normalize=true,
-                       title="SNRE posterior: ϕ^CP", xlabel="ϕ^CP",
-                       label="", color=:darkorange, alpha=0.7)
-        vline!(p2_snre, [θ_true.cp], lw=2, color=:red, label="True")
-        p3_snre = histogram(snre_samples[:,3], bins=20, normalize=true,
-                       title="SNRE posterior: ϕ^AE", xlabel="ϕ^AE",
-                       label="", color=:darkorange, alpha=0.7)
-        vline!(p3_snre, [θ_true.ae], lw=2, color=:red, label="True")
-        plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(800, 280), plot_title="SNRE-B posterior")
+    if snre_samples === nothing
+        md"No NRE draws yet."
     else
-        md"Run SNRE first (Step 2b)."
+        p1_snre = histogram(snre_samples[:,1], bins=20, normalize=true, xlims=(0,1),
+            title="NRE-B: demand pull", xlabel="ϕ^DP", label="Approximate posterior", color=:darkorange, alpha=0.7)
+        vline!(p1_snre, [θ_true.dp], color=:red, lw=2, label="Synthetic truth")
+        p2_snre = histogram(snre_samples[:,2], bins=20, normalize=true, xlims=(0,1),
+            title="NRE-B: cost push", xlabel="ϕ^CP", label="", color=:darkorange, alpha=0.7)
+        vline!(p2_snre, [θ_true.cp], color=:red, lw=2, label="")
+        p3_snre = histogram(snre_samples[:,3], bins=20, normalize=true, xlims=(0,1),
+            title="NRE-B: expectations", xlabel="ϕ^AE", label="", color=:darkorange, alpha=0.7)
+        vline!(p3_snre, [θ_true.ae], color=:red, lw=2, label="")
+        plot(p1_snre, p2_snre, p3_snre, layout=(1,3), size=(800,280))
     end
 end
 
 # ╔═╡ fe47a59e-aeb2-11f1-80fd-7da834c0a7bf
 md"""
-The NPE/NRE posteriors are **much tighter** than the ABC posterior, concentrated near the true values, using far fewer simulations (500 vs the millions ABC would need for comparable quality).
+---
+## 8 — What did this experiment establish?
 
-| Method | Simulation budget | Sampling cost | Posterior type |
-|--------|------------------|---------------|----------------|
-| ABC    | high (millions for dim > 2) | O(1) once accepted | histogram |
-| SNPE-C | medium (500–10k) | cheap (flow forward pass) | full density |
-| SNRE-B | medium (500–10k) | slow (MCMC per query) | unnormalised ratio |
+| Check | Question | What it cannot establish alone |
+|---|---|---|
+| Known-truth recovery | Does the estimator locate chosen coefficients in synthetic data? | Credible intervals with correct repeated-experiment coverage |
+| Inference calibration | Across many prior draws and held-out observations, are posterior probabilities calibrated? | That the simulator describes the real economy |
+| Posterior predictive check | Do posterior draws reproduce observed and additional features? | Uniqueness of the mechanism or correct intervention effects |
+| Empirical / policy validation | Does the model predict independent data or intervention responses? | Universal reliability across regimes and policy changes |
 
-The key advantage highlighted in Lecture 2: both NPE and NRE recover the **full posterior** (not just a point estimate), enabling proper uncertainty quantification of the pass-through coefficients.
+Do not interpret a tighter posterior as automatically better. It can reflect informative data, an overconfident neural approximation, an incorrect observation protocol, or a misspecified model.
+
+A broad ridge may reveal weak identification: different pass-through combinations produce similar aggregate trajectories. A model can also fit these two series while missing employment, sectoral inflation or the response to a wage intervention. Use additional observations and alternative mechanisms to investigate that possibility.
+
+The demonstration does not assert that one method outperforms the others. Comparing methods needs equal simulation budgets, repeated held-out experiments and accuracy diagnostics, not just narrower histograms.
 """
 
 # ╔═╡ fe47a5a6-aeb2-11f1-aac1-bbb9e8e11248
 md"""
 ---
-## ✔ What you learned
+## Exercises — predict, change one thing, explain
 
-- ABM likelihoods are intractable — you can simulate but not evaluate $p(x \mid \theta)$.
-- **ABC** works but is exponentially inefficient in parameter dimension (curse of dimensionality).
-- **SNPE-C** trains a conditional normalising flow $q_\phi(\theta \mid x)$ offline, then queries it instantly for any $x_{\text{obs}}$.
-- **SNRE-B** trains a classifier whose log-ratio approximates the log-likelihood ratio; sampling uses MCMC.
-- Both are called via `PythonCall.jl` wrapping the Mackelab `sbi` package — simulations are generated in Julia, arrays handed to Python.
-- The simulator function `θ → x` is the bridge between BeforeIT and any SBI library.
+### 05.1 — The tolerance trade-off *(no new ABM runs)*
+
+Move `ε` from 0.03 to 0.02 and 0.04. Record the accepted count and describe the three histograms. Is a visually sharper peak based on three draws convincing evidence of precision?
+
+**Hint:** with a fixed bank, decreasing the tolerance cannot increase the number of accepted draws. Posterior width need not change monotonically in a tiny sample.
+
+### 05.2 — Inspect joint identification *(no new ABM runs)*
+
+After NPE, use `scatter(snpe_samples[:,2], snpe_samples[:,3])` and `cor(snpe_samples[:,2], snpe_samples[:,3])`. Do cost push and expected inflation compensate for one another? Compare the joint cloud with the two marginal histograms.
+
+**Hint:** label both axes and restrict them to `[0,1]`. A diagonal cloud can show a trade-off even when each marginal has a visible peak. Do not assume this trade-off occurs before seeing the plot.
+
+### 05.3 — Compare two representations *(reuse the stored bank)*
+
+Define a new representation that averages inflation and growth within each of three four-quarter blocks. It has six values instead of 24. Apply it to **both** `x_obs` and every stored training output, then fit a separate NPE engine with the same coefficient draws. Which timing information was discarded?
+
+**Hint:** start with `mean(x[1:4])` and repeat for `5:8`, `9:12` and the corresponding growth blocks. Keep coefficients, observation seed and training budget fixed. Retraining costs time; no new ABM simulations are needed.
+
+### 05.4 — Recovery and posterior prediction *(at most 10 new outputs)*
+
+Draw ten coefficient vectors from the fitted NPE posterior. Convert each row to `(dp=..., cp=..., ae=...)`, simulate with ten fresh seeds, and overlay the inflation and growth paths on `x_obs`. Describe one feature the model reproduces and one it struggles with, if any.
+
+**Hint:** retain `N=N_paths`, `T=T_sim` and the same data transformations. Use seeds outside the observation and training ranges. This checks the fitted features, so choose an additional variable for a stronger subsequent test.
+
+### 05.5 — Design a misspecification test *(discussion first)*
+
+Suppose the real observation was generated under a different expectation rule or with measurement error, but inference uses this simulator unchanged. Could a narrow posterior still result? Propose an observable or an intervention response that might separate parameter error from mechanism error.
+
+**Hint:** a same-model recovery exercise cannot test a mechanism it assumes to be correct. Explain what would remain ambiguous even after a successful posterior predictive check.
+
+### 05.6 — Add a second SNPE round *(optional stretch)*
+
+Use `snpe_post_py` conditioned on `x_obs` as a proposal for **100** new draws. Simulate those draws with fresh seeds, append them to the **same** engine with `proposal=snpe_post_py`, retrain and build a new posterior. Compare with round one before increasing the budget.
+
+**Hint:** keep the old posterior object as the proposal and call `append_simulations(new_theta, new_x, proposal=old_posterior)`. Proposal correction is essential. A targeted sequential estimator is not guaranteed to remain accurate for unrelated observations; see the [sequential guide](https://sbi.readthedocs.io/en/latest/how_to_guide/02_multiround_inference.html).
 
 ---
 ## Further reading
 
-- Dyer, J. et al. (2024). *Black-box Bayesian inference for economic agent-based models.* — the paper behind the Lecture 2 SBI slides.
-- `github.com/joelnmdyer/sbi4abm` — code, examples, tutorial.
-- `github.com/mackelab/sbi` — the Python SBI library used here.
-- Cranmer, K. et al. (2020). *The frontier of simulation-based inference.* PNAS — broader review.
-
----
-## Exercises
-
-**Exercise 08.1** — Add a 5th summary statistic to the `summarise` function (e.g., the slope of the excess inflation series: `(excess[end] - excess[1]) / T`). Does this extra information narrow the posterior?
-
-**Exercise 08.2** — Change $N_{\text{ABC}}$ from 100 to 500 and ε from 0.015 to 0.010. How does the acceptance rate change? How does the posterior tighten?
-
-**Exercise 08.3** — Increase `N_sbi` to 2000 and re-run Steps 1 and 2a. How does the SNPE posterior width compare?
-
-**Exercise 08.4** *(stretch)* — Run two rounds of sequential SNPE: after the first round, use the posterior as the proposal for a second round of 500 simulations. See the `sbi` docs for `append_simulations(..., proposal=posterior)`.
+- Dyer, J., Cannon, P., Farmer, J. Doyne and Schmon, S. M. (2024). [*Black-Box Bayesian Inference for Agent-Based Models*](https://doi.org/10.1016/j.jedc.2024.104827), *Journal of Economic Dynamics and Control* — the economic-ABM application behind the SBI lecture.
+- [`sbi`: Bayesian workflow and diagnostics](https://sbi.readthedocs.io/en/latest/tutorials/01_Bayesian_workflow.html) — distinguish approximation checks from model checks.
+- [`sbi4abm` examples](https://github.com/joelnmdyer/sbi4abm) — implementation examples for economic ABMs.
 """
 
 # ╔═╡ Cell order:
 # ╟─fe46785c-aeb2-11f1-b29c-f9f57fb156bb
 # ╠═fe47a376-aeb2-11f1-b61a-afb43896f469
+# ╟─f0050000-0000-4000-8000-000000000001
+# ╠═f0050000-0000-4000-8000-000000000002
 # ╟─fe47a3e4-aeb2-11f1-8672-87cfc7b65656
 # ╟─fe47a3f8-aeb2-11f1-bb78-fdae608fd8dd
 # ╠═fe47a416-aeb2-11f1-9746-851acfeb8207
@@ -555,6 +597,7 @@ md"""
 # ╟─fe47a484-aeb2-11f1-ab62-c9fb038b7b75
 # ╠═fe47a48e-aeb2-11f1-ba58-7f92563411e7
 # ╠═fe47a4a2-aeb2-11f1-b008-a52edb0e1db3
+# ╟─f0050000-0000-4000-8000-000000000003
 # ╠═fe47a4ac-aeb2-11f1-aad4-dbf9faa34303
 # ╟─fe47a4c8-aeb2-11f1-b2eb-316721706547
 # ╟─fe47a4de-aeb2-11f1-a8a6-8dd6f18757b5

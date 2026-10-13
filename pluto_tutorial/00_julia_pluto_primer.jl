@@ -27,7 +27,9 @@ end
 md"""
 # Notebook 00 — Julia + Pluto Primer
 
-**Before the tutorials can begin, this 20-minute crash course gives you the Julia and Pluto knowledge you need.**
+**An optional, roughly 20-minute introduction to the Julia and Pluto features used in this course.**
+
+Read the examples, predict their outputs, then change one input and explain the result. Online pages display saved outputs; run the notebook in Pluto to edit code or use the controls.
 
 If you are already comfortable with Julia, skip to **Notebook 01**.
 
@@ -35,7 +37,7 @@ If you are already comfortable with Julia, skip to **Notebook 01**.
 1. Variables, types, and functions
 2. Arrays and broadcasting
 3. Structs and `fieldnames` — needed to inspect the BeforeIT model
-4. Multiple dispatch in one slide — needed for model extensions (Notebook 04)
+4. Multiple dispatch in one example — needed for model extensions (Notebook 04)
 5. Pluto specifics: reactive cells, `begin…end`, `@bind`
 6. A mini exercise to check understanding
 """
@@ -149,7 +151,9 @@ h.income   # dot-access
 
 # ╔═╡ 0a000000-0000-0000-0000-00000000000f
 md"""
-In BeforeIT, the model uses a **struct-of-arrays (SoA)** layout for performance: instead of a vector of `Household` structs, there is one struct containing vectors. This means `model.w_act.income` is the incomes of ALL active workers as a single array.
+In BeforeIT, the model uses a **struct-of-arrays (SoA)** layout for performance: instead of a vector of `Household` structs, there is one struct containing vectors. For example, `model.w_act.Y_h` contains regular workers' incomes, while `model.w_act.D_h` contains their deposits. `Y_h` is the model's actual field name; `income` belongs only to the toy `Household` above.
+
+A further distinction matters: `b = wages` refers to the same array as `wages`, whereas `b = copy(wages)` creates a separate array. Use a copy when you want a comparison that leaves the original data unchanged.
 """
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000010
@@ -163,11 +167,11 @@ Julia functions can have multiple **methods** — different implementations sele
 # ╔═╡ 0a000000-0000-0000-0000-000000000011
 begin
     # Default implementation
-    set_price!(firms) = firms .* 1.02
+    set_price!(firms) = firms .*= 1.02
     
     # Specialised method for a custom type
     struct PriceSticky end
-    set_price!(firms, ::PriceSticky) = firms .* 1.005   # stickier prices
+    set_price!(firms, ::PriceSticky) = firms .*= 1.005   # stickier prices
     
     prices = [10.0, 20.0, 30.0]
     set_price!(copy(prices))             # uses default method → +2%
@@ -179,7 +183,7 @@ set_price!(copy(prices), PriceSticky())   # uses sticky method → +0.5%
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000013
 md"""
-In Notebook 04 you will override BeforeIT's pricing function with your own method — the same mechanism at a larger scale.
+The `!` convention signals that a function changes its input: these methods mutate the copied price vector. Multiple dispatch chooses a method from the argument types. In Notebook 04, an additional method for a custom model type changes firms' decisions while the base-model method remains available.
 """
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000014
@@ -190,13 +194,13 @@ md"""
 Pluto notebooks are **reactive**: when you change a cell, every cell that depends on it re-runs automatically.
 
 ### One definition per cell
-Each variable can only be **defined once** in a Pluto notebook. If you want to define several things together, wrap them in a `begin ... end` block:
+Each global variable must have **one defining cell**. A cell can define several variables; group its expressions in a `begin ... end` block. Other cells may read those variables. Renaming a variable in an exercise avoids a duplicate definition:
 """
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000015
 begin
     τ_vat = 0.1529     # VAT rate (from Lecture 2 parameter table)
-    τ_firm = 0.0762    # corporate tax rate
+    τ_firm = 0.0770    # rounded corporate tax rate for this example
 end
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000016
@@ -220,19 +224,19 @@ Net income at tax rate $(round(τ_slider * 100, digits=1))%: **€$(round(net_in
 
 # ╔═╡ 0a000000-0000-0000-0000-00000000001a
 md"""
-### Expensive computations: use a Button
+### Expensive computations: confirm the settings
 
-For cells that take seconds to run, use a `Button` so they only re-run when you click — not on every slider change:
+A button creates another dependency; it does not stop a cell from rerunning when other inputs change. Wrap an expensive calculation's controls in `PlutoUI.confirm` instead. Moving this slider does not update the bound value until you press **Apply setting**. The default calculation still runs once when the notebook opens.
 """
 
 # ╔═╡ 0a000000-0000-0000-0000-00000000001b
-@bind run_demo PlutoUI.Button("Run slow computation")
+@bind run_demo PlutoUI.confirm(PlutoUI.Slider(1:5, default=2, show_value=true); label="Apply setting")
 
 # ╔═╡ 0a000000-0000-0000-0000-00000000001c
 begin
-    run_demo   # depends on the button — re-runs when clicked
+    run_demo   # updates after confirming the slider value
     sleep(0.1) # simulating a slow operation
-    "Computation complete!"
+    "Computation complete for confirmed setting $(run_demo)."
 end
 
 # ╔═╡ 0a000000-0000-0000-0000-00000000001d
@@ -243,7 +247,7 @@ md"""
 - [ ] How do you broadcast a function over an array in Julia?
 - [ ] What does `fieldnames(typeof(x))` return?
 - [ ] What does `@bind` do in a Pluto notebook?
-- [ ] Why use a Button instead of a Slider for expensive computations?
+- [ ] Why confirm settings before an expensive computation?
 
 If you can answer these, open **Notebook 01**.
 """
@@ -253,7 +257,7 @@ md"""
 ---
 ## Mini exercise
 
-**Exercise 00.1** — Modify the cell below so `inflation_adjusted` gives the real (inflation-adjusted) value of `nominal_gdp` after 8 quarters of 2% inflation.
+**Exercise 00.1** — Modify the cell below so `inflation_adjusted` gives the real (inflation-adjusted) value of `nominal_gdp` after 8 quarters of **2% inflation per quarter**. Take the initial price level to be 1; the price level after eight quarters is `(1 + inflation_rate)^8`. This is a units exercise, not an economic forecast.
 Then move the `inflation_rate` slider to see how the answer changes.
 """
 
@@ -269,12 +273,17 @@ begin
 end
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000021
-md"Inflation-adjusted GDP: **$(round(inflation_adjusted, digits=2)) € bn** (expected: ~$(round(nominal_gdp / (1 + inflation_rate)^n_quarters, digits=2)) € bn)"
+Markdown.parse("Your real GDP: **$(round(inflation_adjusted, digits=2)) € bn**. Check: **$(isapprox(inflation_adjusted, nominal_gdp / (1 + inflation_rate)^n_quarters) ? "correct" : "revise the formula")**. At zero inflation it should equal nominal GDP; with positive inflation it should be lower.")
 
 # ╔═╡ 0a000000-0000-0000-0000-000000000022
-md"""
-> **Answer** (unhide to check): `inflation_adjusted = nominal_gdp / (1 + inflation_rate)^n_quarters`
-"""
+PlutoUI.Foldable("Reveal the solution and interpretation", md"""
+```julia
+inflation_adjusted = nominal_gdp / (1 + inflation_rate)^n_quarters
+```
+Divide by the compounded **price level**, not by the inflation rate or the number of quarters. Annual and quarterly rates must not be mixed. With eight quarters of 2% inflation, the same nominal amount buys less than it did at the initial price level.
+
+**Transfer exercise:** use `compound_growth` to turn a quarterly rate into an annual rate. Check that it is `(1 + rate)^4 - 1`, rather than exactly `4 * rate`.
+""")
 
 # ╔═╡ Cell order:
 # ╟─0a000000-0000-0000-0000-000000000002

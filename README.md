@@ -48,7 +48,8 @@ julia -t auto -e 'using Pluto; Pluto.run()'
 ```
 
 Open any notebook from the Pluto file browser. Every notebook activates the
-shared environment itself, so there is nothing to precompile per notebook.
+shared environment itself, so package versions are shared across notebooks. Initial package
+and function compilation can still take time; keep the terminal running.
 
 ### Notebooks
 
@@ -69,6 +70,21 @@ or [open the source](pluto_tutorial/cheatsheet.jl).
 
 Work through 01 to 05 in order — each assumes the previous ones. Exercises are at the
 bottom of each notebook.
+
+## Learning route
+
+- **Core:** 01 → 02 → 03. Run and inspect a calibrated economy, evaluate forecasts, then compare interventions and expectations. Start with 00 if Julia or Pluto is new to you.
+- **Advanced:** 04 → 05. Change a behavioural mechanism, then learn how simulation-based inference estimates its parameters and what parameter recovery can establish.
+- **Reference:** keep the cheatsheet open alongside your notebook.
+
+For each notebook, predict an effect, run the default example, change one setting,
+and explain a figure in economic terms. Record units, the calibration date, the seed
+and horizon. The guided exercises include starter code, hints or checks; use distinct
+variable names when adding exercise cells in Pluto.
+
+The online pages contain saved output rather than a live simulation service. Expensive
+controls use confirmation to batch settings; notebook 05 additionally separates simulation
+and training into stages. Small defaults support learning, not precise policy estimates.
 
 ## Branches
 

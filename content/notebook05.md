@@ -7,43 +7,102 @@ layout: "md.jlmd"
 
 # Notebook 05 — Likelihood-free calibration
 
-**This notebook is run locally rather than rendered here.** Everything else on this
-site has its output baked in; this one does not, for the reason below.
+**Read this guide online; run the full notebook locally.** Its simulations and neural
+training require a local Julia/Python environment. The guide does not display fitted
+posteriors or assert that a method recovered the coefficients.
 
-## What it covers
+[Open the notebook source](https://github.com/SGHoekstra/Behavioural_Macro_and_Finance/blob/main/pluto_tutorial/05_likelihood_free_calibration.jl)
 
-The CANVAS extension from Notebook 04 adds three pass-through coefficients that
-Notebook 04 sets by hand. This notebook recovers them from data instead, without ever
-writing down a likelihood:
+## The question
 
-- **ABC** — accept simulations whose trajectories fall within ε of the observation. The
-  simplest likelihood-free method, and the least efficient.
-- **NPE / SNPE-C** — train a normalising flow to approximate the posterior directly, so
-  evaluating it is one forward pass.
-- **SNRE-B** — train a classifier to estimate the likelihood *ratio*, then sample by MCMC.
+In Notebook 04, you chose how strongly CANVAS firms pass demand, costs and expected
+inflation into their prices. Can inflation and GDP growth reveal those three
+coefficients instead?
 
-It follows Dyer et al. (2024) and Wiese et al. (2023), and calls the Mackelab
-[`sbi`](https://github.com/mackelab/sbi) package from Julia through PythonCall.
+Notebook 05 uses a **known-truth recovery experiment**. It generates a synthetic
+observation at chosen coefficients, then gives the estimator only the observation.
+The true coefficients provide a reference for interpreting the inferred distribution.
+All other model parameters and the pricing mechanism remain fixed.
 
-## Running it
+Before running, predict which pricing channel could be hardest to distinguish from
+the others using just two aggregate series.
 
-```
-cd pluto_tutorial
+## Three ways to infer the coefficients
+
+| Method | What it does | What to inspect |
+|---|---|---|
+| **ABC** | Draw coefficients from the prior, simulate data, retain draws close to the observation | Distance definition, tolerance and accepted count |
+| **NPE** | Train a conditional density of coefficients given simulated outputs | Network fit, posterior shape and parameter correlations |
+| **NRE-B** | Train a contrastive classifier to estimate a likelihood-to-evidence ratio, combine it with the prior and sample with MCMC | Network fit, chain mixing and effective sample size |
+
+The executable example runs **one prior-sampled round** of each neural method. It uses
+engines that can also run sequentially; calling an engine “SNPE” or “SNRE” does not
+by itself add a second simulation round. The optional sequential exercise focuses
+new simulations on the current posterior and explains why NPE needs a proposal
+correction.
+
+A sharper histogram is not automatically a better posterior. Weak identification,
+network error and a misspecified simulator can all affect the result.
+
+## Run in stages
+
+After cloning the course repository, follow the installation page and run:
+
+```bash
+cd Behavioural_Macro_and_Finance/pluto_tutorial
 julia setup.jl
 julia -t auto -e 'using Pluto; Pluto.run()'
 ```
 
-then open `05_likelihood_free_calibration.jl`. On first run it pulls a Python
-environment (`sbi`, torch) of a few hundred megabytes, and a full pass takes roughly
-25 minutes. It has been verified end to end at the shipped simulation budget.
+Open `05_likelihood_free_calibration.jl` in Pluto. Opening the notebook starts in
+**reading mode**: simulation and training stages are disabled. Enabling the local
+environment may install Python, PyTorch and `sbi` on first use.
 
-## Why it is not rendered
+1. **Enable the local environment.** Read the observation protocol and small-budget settings.
+2. **Generate the synthetic observation.** Twelve quarterly inflation rates and twelve growth rates form a 24-value vector.
+3. **Generate the ABC bank, optionally.** Move its tolerance slider to reuse the stored distances without new ABM runs.
+4. **Generate the neural training bank.** Inspect the coefficient/output matrix dimensions and any failed simulations.
+5. **Train NPE.** Interpret all three marginals and inspect their joint relationships.
+6. **Train NRE-B, optionally.** It reuses the neural bank and samples using MCMC.
 
-Inside the site build on Linux, `torch` loads `pyexpat`, which must bind to conda's
-`libexpat`. Plots reaches Julia's `Expat_jll` through GR and Cairo, and because the
-Linux dynamic linker resolves symbols globally, `pyexpat` can bind to the wrong one and
-fail with `undefined symbol: XML_SetHashSalt16Bytes`.
+The default experiment uses **four simulated paths per output**, **100 ABC parameter
+draws** and **200 neural training draws**. NPE draws 1,000 approximate posterior
+samples; the optional NRE run draws 200 MCMC samples. These are teaching budgets,
+not an accuracy guarantee. Runtime varies by computer; start with the defaults
+before increasing the cost.
 
-The same import order succeeds in a plain Julia process on the same runner, so this is
-specific to the notebook worker rather than to the notebook. Rather than publish a page
-with a live `ImportError` on it, the notebook ships as source.
+## Match the observation to the simulator
+
+The synthetic observation and every training output use the same horizon, units,
+four-path averaging and data transformations, with distinct seeds. Coefficient draws
+use a separate random-number generator from the economy simulations.
+
+This averaged observation is an idealised experiment. An empirical application must
+specify how data from one economy, measurement errors and transformations enter the
+observation model. Changing the observation protocol requires changing training too.
+Failed or non-finite simulations block neural fitting rather than being silently
+removed from the estimation sample.
+
+## Recovery, diagnostics and validation
+
+- **Recovery** asks whether inference locates chosen coefficients in data from the same simulator.
+- **Inference calibration** checks posterior probabilities across repeated held-out synthetic experiments.
+- **Posterior prediction** asks whether posterior draws reproduce observed or additional features.
+- **Model and policy validation** require independent data, alternative mechanisms or intervention responses.
+
+A same-model recovery exercise cannot establish that the model represents the real
+economy or predicts a policy intervention reliably. Even good prediction of the two
+fitted series can leave different pricing mechanisms observationally similar.
+
+## Exercises to start with
+
+The full notebook gives six exercises with hints. Begin with the two that need no
+new economy simulations: vary the ABC tolerance and plot cost-push versus expectation
+coefficients from the NPE draws. Then compare a coarser data representation, generate
+a small posterior-predictive sample, discuss a misspecification test, or attempt a
+second sequential round.
+
+For background, see Dyer et al. (2024),
+[*Black-Box Bayesian Inference for Agent-Based Models*](https://doi.org/10.1016/j.jedc.2024.104827),
+and the official [`sbi` Bayesian workflow](https://sbi.readthedocs.io/en/latest/tutorials/01_Bayesian_workflow.html)
+and [sequential-inference guide](https://sbi.readthedocs.io/en/latest/how_to_guide/02_multiround_inference.html).

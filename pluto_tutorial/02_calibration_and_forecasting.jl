@@ -219,7 +219,7 @@ begin
     "Three 20-quarter simulations complete. A fixed seed aids reproducibility; each scenario has different dynamics."
 end
 
-# ╔═╡ b2930762-aeb8-11f1-a537-7fa2dec3ab68
+# ╔═╡ 0a77cff2-b9b5-4b86-b669-9bdb8a262131
 begin
     gdp_on = model_shocks_on.data.real_gdp
     gdp_off = model_no_shocks.data.real_gdp
@@ -228,6 +228,11 @@ begin
     nb2_index_on = 100 .* gdp_on ./ first(gdp_on)
     nb2_index_off = 100 .* gdp_off ./ first(gdp_off)
     nb2_index_steady = 100 .* gdp_steady ./ first(gdp_steady)
+    nothing
+end
+
+# ╔═╡ b2930762-aeb8-11f1-a537-7fa2dec3ab68
+begin
 
     p3 = plot(0:20, nb2_index_on, label="Baseline", lw=2, color=:steelblue,
               title="Initialisation comparison: real GDP", xlabel="Quarters after initialisation",
@@ -389,7 +394,7 @@ only make its simulation estimate less noisy? Change settings below, then press 
 
     Quarters ahead: $(Child("horizon", PlutoUI.Slider(4:4:40, default=8, show_value=true)))
 
-    Random seed: $(Child("seed", PlutoUI.Slider(1:3000, default=2019, show_value=true)))
+    Random seed: $(Child("seed", PlutoUI.Slider(1:3000, default=2019, show_value=true, max_steps=3000)))
     """
 end)
 
@@ -416,7 +421,7 @@ begin
     "Forecast complete: $(n_mc_fc) paths × $(T_fc) quarters."
 end
 
-# ╔═╡ b2afa340-aeb8-11f1-8dd6-d3320810d4d9
+# ╔═╡ 80f08e04-b55e-47b7-8c86-fd45195df8bd
 begin
     # Rows are horizons 0:T_fc; columns are Monte Carlo paths.
     nb2_gdp_mat = hcat([m.data.real_gdp for m in _mc_models]...)
@@ -426,6 +431,11 @@ begin
     nb2_gdp_p25 = [quantile(nb2_gdp_index_mat[t, :], 0.25) for t in 1:(T_fc+1)]
     nb2_gdp_p75 = [quantile(nb2_gdp_index_mat[t, :], 0.75) for t in 1:(T_fc+1)]
     nb2_gdp_p90 = [quantile(nb2_gdp_index_mat[t, :], 0.90) for t in 1:(T_fc+1)]
+    nothing
+end
+
+# ╔═╡ b2afa340-aeb8-11f1-8dd6-d3320810d4d9
+begin
 
     # Draw bands by their endpoints: a skewed distribution's mean need not lie inside every band.
     p_fan = plot(0:T_fc, nb2_gdp_p10, fillrange=nb2_gdp_p90, fillalpha=0.15,
@@ -534,9 +544,14 @@ begin
     (persistence=round(α_ar1, digits=4), intercept=round(β_ar1, digits=4))
 end
 
-# ╔═╡ b2afa3a4-aeb8-11f1-890c-c75acb76f4a5
+# ╔═╡ 83758030-7ed7-40a5-9910-45c92caf1408
 begin
     ar1_norm = 100 .* ar1_forecast ./ first(ar1_forecast)
+    nothing
+end
+
+# ╔═╡ b2afa3a4-aeb8-11f1-890c-c75acb76f4a5
+begin
     gdp_norm = nb2_gdp_mean
     p10_norm = nb2_gdp_p10
     p90_norm = nb2_gdp_p90
@@ -700,6 +715,7 @@ the information set if you instead performed a conditional forecast.
 # ╟─b2930714-aeb8-11f1-abe4-5d52a2a3d662
 # ╠═b293071c-aeb8-11f1-acbf-7f82e962da0c
 # ╠═b293074e-aeb8-11f1-b819-abbb938d2334
+# ╠═0a77cff2-b9b5-4b86-b669-9bdb8a262131
 # ╠═b2930762-aeb8-11f1-a537-7fa2dec3ab68
 # ╟─b2930778-aeb8-11f1-87c2-fdbcbfda5da2
 # ╟─b293078a-aeb8-11f1-84ec-4bfed0885b59
@@ -714,6 +730,7 @@ the information set if you instead performed a conditional forecast.
 # ╠═b2afa322-aeb8-11f1-9614-65079b45f80c
 # ╠═b2afa32c-aeb8-11f1-8898-c1cd175b3425
 # ╠═b2afa336-aeb8-11f1-a55b-e75364320332
+# ╠═80f08e04-b55e-47b7-8c86-fd45195df8bd
 # ╠═b2afa340-aeb8-11f1-8dd6-d3320810d4d9
 # ╟─b2afa340-aeb8-11f1-bb47-d38b51bec0f3
 # ╟─b2afa34c-aeb8-11f1-af46-291c0386f1cf
@@ -721,6 +738,7 @@ the information set if you instead performed a conditional forecast.
 # ╟─b2afa372-aeb8-11f1-8640-1fe8cf76ca5c
 # ╟─b2afa390-aeb8-11f1-9b7c-6dcb8a3b7349
 # ╠═b2afa39a-aeb8-11f1-b8bc-e9c07f6758d2
+# ╠═83758030-7ed7-40a5-9910-45c92caf1408
 # ╠═b2afa3a4-aeb8-11f1-890c-c75acb76f4a5
 # ╟─b2afa3b0-aeb8-11f1-b0c2-4b6ae274fab9
 # ╠═b2afa3c2-aeb8-11f1-9ab0-bd059ee19dd4
